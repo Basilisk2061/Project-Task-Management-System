@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link, useNavigate, useOutletContext, useParams } from 'react-router-dom'
-import { CheckCircleIcon, EditIcon, FileIcon, PlusIcon, TrashIcon } from '../components/AppIcons.jsx'
+import { Link, useNavigate, useOutletContext, useParams, useSearchParams } from 'react-router-dom'
+import { CheckCircleIcon, EditIcon, FileIcon, GitHubIcon, PlusIcon, TrashIcon } from '../components/AppIcons.jsx'
 import AddMemberModal from '../components/AddMemberModal.jsx'
 import ConfirmModal from '../components/ConfirmModal.jsx'
 import DocumentUploadModal from '../components/DocumentUploadModal.jsx'
+import GitHubRepositoryModal from '../components/GitHubRepositoryModal.jsx'
+import GitHubCommitList from '../components/GitHubCommitList.jsx'
 import ProjectFormModal from '../components/ProjectFormModal.jsx'
 import ProjectAssistant from '../components/ProjectAssistant.jsx'
 import { ProjectDetailsSkeleton, SkeletonRows } from '../components/Skeleton.jsx'
@@ -25,11 +27,13 @@ import {
 import { formatCreatedDate, formatDate } from '../utils/date.js'
 import { deleteDocument, getDocumentBlob, getDocumentError, getProjectDocuments } from '../services/documents.js'
 import { createTask, deleteTask, getProjectTasks, getTaskError, updateTask, updateTaskStatus } from '../services/tasks.js'
+import { disconnectGitHubRepository, getGitHubError, getProjectGitHubCommits } from '../services/github.js'
 
 function ProjectDetails() {
   const { projectId } = useParams()
   const { user } = useOutletContext()
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
   const { showToast } = useToast()
   const [project, setProject] = useState(null)
   const [members, setMembers] = useState([])
@@ -41,6 +45,12 @@ function ProjectDetails() {
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [completeOpen, setCompleteOpen] = useState(false)
   const [reopenOpen, setReopenOpen] = useState(false)
+  const [githubModalOpen, setGitHubModalOpen] = useState(false)
+  const [githubDisconnectOpen, setGitHubDisconnectOpen] = useState(false)
+  const [githubCommits, setGitHubCommits] = useState([])
+  const [githubCommitsLoading, setGitHubCommitsLoading] = useState(false)
+  const [githubCommitsError, setGitHubCommitsError] = useState('')
+  const [githubCommitRevision, setGitHubCommitRevision] = useState(0)
   const [addMemberOpen, setAddMemberOpen] = useState(false)
   const [memberToRemove, setMemberToRemove] = useState(null)
   const [removingUserId, setRemovingUserId] = useState(null)
@@ -106,6 +116,37 @@ function ProjectDetails() {
     return () => window.cancelAnimationFrame(frame)
   }, [progressPercent])
 
+  useEffect(() => {
+    if (!project) return
+    const githubAction = searchParams.get('github')
+    if (!githubAction) return
+    if (githubAction === 'select' && project.created_by === user.id && project.status === 'active') {
+      setGitHubModalOpen(true)
+    } else if (githubAction === 'cancelled') {
+      showToast('GitHub authorization was cancelled.', { type: 'error' })
+    }
+    setSearchParams({}, { replace: true })
+  }, [project, searchParams, setSearchParams, showToast, user.id])
+
+  useEffect(() => {
+    if (!project?.github_repo_owner || !project?.github_repo_name) {
+      setGitHubCommits([])
+      setGitHubCommitsError('')
+      return undefined
+    }
+    let active = true
+    setGitHubCommitsLoading(true)
+    setGitHubCommitsError('')
+    setGitHubCommits([])
+    getProjectGitHubCommits(project.id)
+      .then((data) => { if (active) setGitHubCommits(data) })
+      .catch((requestError) => {
+        if (active) setGitHubCommitsError(getGitHubError(requestError, 'Unable to load GitHub activity.'))
+      })
+      .finally(() => { if (active) setGitHubCommitsLoading(false) })
+    return () => { active = false }
+  }, [project?.id, project?.github_repo_owner, project?.github_repo_name, project?.github_default_branch, githubCommitRevision])
+
   if (loading) return <ProjectDetailsSkeleton />
 
   if (error || !project) {
@@ -114,6 +155,7 @@ function ProjectDetails() {
 
   const isOwner = project.created_by === user.id
   const isCompleted = project.status === 'completed'
+  const githubConnected = Boolean(project.github_repo_owner && project.github_repo_name && project.github_repo_url)
   const incompleteTaskCount = tasks.filter((task) => task.status !== 'completed').length
 
   const finishMemberRemoval = (member) => {
@@ -238,6 +280,36 @@ function ProjectDetails() {
         </div>
       </section>
 
+      <section className="github-project-card" aria-labelledby="project-github-title">
+        <header className="github-project-header">
+          <div><span className="github-project-icon"><GitHubIcon /></span><div><h2 id="project-github-title">GitHub</h2><p>{githubConnected ? 'Repository connected to this TaskFlow project.' : 'GitHub integration is optional.'}</p></div></div>
+          {isOwner && !isCompleted && !githubConnected && <button className="btn taskflow-button secondary" type="button" onClick={() => setGitHubModalOpen(true)}><GitHubIcon /><span>Connect GitHub</span></button>}
+        </header>
+        {githubConnected ? (
+          <>
+          <div className="github-connected-content">
+            <dl>
+              <div><dt>Repository</dt><dd>{project.github_repo_owner}/{project.github_repo_name}</dd></div>
+              <div><dt>Default branch</dt><dd>{project.github_default_branch || 'Not available'}</dd></div>
+              <div><dt>Connected</dt><dd>{formatCreatedDate(project.github_connected_at)}</dd></div>
+            </dl>
+            <div className="github-project-actions">
+              <a className="btn taskflow-button secondary" href={project.github_repo_url} target="_blank" rel="noopener noreferrer">View Repository</a>
+              {isOwner && !isCompleted && <>
+                <button className="btn taskflow-button secondary" type="button" onClick={() => setGitHubModalOpen(true)}>Change Repository</button>
+                <button className="btn taskflow-button danger-outline" type="button" onClick={() => setGitHubDisconnectOpen(true)}>Disconnect</button>
+              </>}
+            </div>
+          </div>
+          <div className="github-activity-section">
+            <div className="github-activity-heading"><div><h3>Recent Activity</h3><p>Reference a TaskFlow task in a commit using <code>TASK-{'{id}'}</code>, for example <code>TASK-12: Add login validation</code>.</p></div><button type="button" onClick={() => setGitHubCommitRevision((current) => current + 1)} disabled={githubCommitsLoading}>Refresh</button></div>
+            {githubCommitsError && <div className="github-activity-error" role="alert">{githubCommitsError}</div>}
+            {githubCommitsLoading ? <SkeletonRows count={3} variant="commits" /> : <GitHubCommitList commits={githubCommits.slice(0, 5)} emptyMessage="No commits are available for this repository yet." />}
+          </div>
+          </>
+        ) : <p className="github-not-connected">{isOwner && !isCompleted ? 'Connect this project to a GitHub repository for future development activity integration.' : 'No GitHub repository is connected.'}</p>}
+      </section>
+
       <section className="members-card">
         <header className="members-header">
           <div><h2>Members</h2><p>People with access to this project.</p></div>
@@ -338,6 +410,15 @@ function ProjectDetails() {
         confirmButtonClass="primary"
         onClose={() => setReopenOpen(false)} onConfirm={() => reopenProject(project.id)}
         onConfirmed={(savedProject) => { setProject(savedProject); showToast('Project reopened') }} />
+      <GitHubRepositoryModal isOpen={githubModalOpen} projectId={project.id}
+        onClose={() => setGitHubModalOpen(false)}
+        onConnected={(savedProject) => { setProject(savedProject); showToast('GitHub repository connected.') }} />
+      <ConfirmModal isOpen={githubDisconnectOpen}
+        title="Disconnect GitHub repository?"
+        message="This removes only the GitHub connection. Existing TaskFlow tasks, comments, documents, and Assistant history will not be deleted."
+        confirmLabel="Disconnect" loadingLabel="Disconnecting..." fallbackError="Unable to disconnect GitHub repository."
+        onClose={() => setGitHubDisconnectOpen(false)} onConfirm={() => disconnectGitHubRepository(project.id)}
+        onConfirmed={(savedProject) => { setProject(savedProject); showToast('GitHub repository disconnected.') }} />
       <AddMemberModal isOpen={addMemberOpen} projectId={project.id}
         onClose={() => setAddMemberOpen(false)}
         onMemberAdded={(member) => { setMembers((current) => [...current, member]); showToast(`${member.name} added to the project.`) }} />

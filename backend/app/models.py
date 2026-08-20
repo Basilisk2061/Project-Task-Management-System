@@ -46,6 +46,12 @@ class User(Base):
     uploaded_documents = relationship("Document", back_populates="uploader")
     assistant_conversations = relationship("AssistantConversation", back_populates="creator")
     assistant_messages = relationship("AssistantMessage", back_populates="user")
+    github_credential = relationship(
+        "GitHubCredential",
+        back_populates="user",
+        uselist=False,
+        cascade="all, delete-orphan",
+    )
 
 
 class Project(Base):
@@ -63,6 +69,11 @@ class Project(Base):
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
     status = Column(String, nullable=False, default="active", server_default="active")
     completed_at = Column(DateTime, nullable=True)
+    github_repo_owner = Column(String, nullable=True)
+    github_repo_name = Column(String, nullable=True)
+    github_repo_url = Column(String, nullable=True)
+    github_default_branch = Column(String, nullable=True)
+    github_connected_at = Column(DateTime, nullable=True)
 
     creator = relationship("User", back_populates="created_projects")
     members = relationship("ProjectMember", back_populates="project")
@@ -92,6 +103,20 @@ class ProjectMember(Base):
 
     project = relationship("Project", back_populates="members")
     user = relationship("User", back_populates="project_memberships")
+
+
+class GitHubCredential(Base):
+    __tablename__ = "github_credentials"
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, unique=True, index=True)
+    github_user_id = Column(String, nullable=False)
+    github_login = Column(String, nullable=False)
+    access_token_encrypted = Column(Text, nullable=False)
+    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+    updated_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+
+    user = relationship("User", back_populates="github_credential")
 
 
 class Task(Base):

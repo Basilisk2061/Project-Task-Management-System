@@ -103,10 +103,55 @@ class ProjectResponse(BaseModel):
     created_at: datetime
     status: Literal["active", "completed"]
     completed_at: datetime | None
+    github_repo_owner: str | None
+    github_repo_name: str | None
+    github_repo_url: str | None
+    github_default_branch: str | None
+    github_connected_at: datetime | None
 
 
 class ProjectMemberCreate(BaseModel):
     user_id: int
+
+
+class GitHubOAuthStartResponse(BaseModel):
+    authorization_url: str
+
+
+class GitHubRepositoryResponse(BaseModel):
+    owner: str
+    name: str
+    full_name: str
+    html_url: str
+    default_branch: str
+    private: bool
+
+
+class GitHubRepositoryConnect(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    owner: str = Field(min_length=1, max_length=100)
+    name: str = Field(min_length=1, max_length=100)
+
+    @field_validator("owner", "name")
+    @classmethod
+    def clean_repository_identifier(cls, value: str) -> str:
+        cleaned = value.strip()
+        if not cleaned:
+            raise ValueError("Repository owner and name are required")
+        return cleaned
+
+
+class GitHubCommitResponse(BaseModel):
+    sha: str
+    short_sha: str
+    message: str
+    author_name: str
+    github_username: str | None
+    author_avatar_url: str | None
+    committed_at: datetime
+    html_url: str
+    task_ids: list[int]
 
 
 class ProjectMemberResponse(BaseModel):
@@ -140,6 +185,8 @@ class TaskProjectResponse(BaseModel):
     name: str
     created_by: int
     status: Literal["active", "completed"]
+    github_repo_owner: str | None
+    github_repo_name: str | None
 
 
 class TaskCreate(BaseModel):

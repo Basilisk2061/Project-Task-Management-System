@@ -2,9 +2,11 @@ import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { CloseIcon, TrashIcon } from './AppIcons.jsx'
 import ConfirmModal from './ConfirmModal.jsx'
+import GitHubCommitList from './GitHubCommitList.jsx'
 import { SkeletonRows } from './Skeleton.jsx'
 import { createComment, deleteComment, getCommentError, getTaskComments } from '../services/comments.js'
 import { formatCommentTimestamp, formatDate } from '../utils/date.js'
+import { getGitHubError, getTaskGitHubCommits } from '../services/github.js'
 
 const statusLabels = {
   todo: 'To Do',
@@ -21,6 +23,10 @@ function TaskDetailsModal({ isOpen, task, user, onClose, onEdit, readOnly = fals
   const [closing, setClosing] = useState(false)
   const [commentToDelete, setCommentToDelete] = useState(null)
   const [removingCommentId, setRemovingCommentId] = useState(null)
+  const [githubCommits, setGitHubCommits] = useState([])
+  const [githubLoading, setGitHubLoading] = useState(false)
+  const [githubError, setGitHubError] = useState('')
+  const [githubRevision, setGitHubRevision] = useState(0)
   const closeTimer = useRef(null)
   const removeTimer = useRef(null)
 
@@ -40,6 +46,26 @@ function TaskDetailsModal({ isOpen, task, user, onClose, onEdit, readOnly = fals
       .finally(() => { if (active) setLoadingComments(false) })
     return () => { active = false }
   }, [isOpen, task])
+
+  useEffect(() => {
+    const githubConnected = Boolean(task?.project.github_repo_owner && task?.project.github_repo_name)
+    if (!isOpen || !task || !githubConnected) {
+      setGitHubCommits([])
+      setGitHubError('')
+      return undefined
+    }
+    let active = true
+    setGitHubLoading(true)
+    setGitHubError('')
+    setGitHubCommits([])
+    getTaskGitHubCommits(task.project.id, task.id)
+      .then((data) => { if (active) setGitHubCommits(data) })
+      .catch((requestError) => {
+        if (active) setGitHubError(getGitHubError(requestError, 'Unable to load task GitHub activity.'))
+      })
+      .finally(() => { if (active) setGitHubLoading(false) })
+    return () => { active = false }
+  }, [isOpen, task, githubRevision])
 
   useEffect(() => () => {
     window.clearTimeout(closeTimer.current)
@@ -74,6 +100,7 @@ function TaskDetailsModal({ isOpen, task, user, onClose, onEdit, readOnly = fals
   if (!isOpen || !task) return null
 
   const taskReadOnly = readOnly || task.project.status === 'completed'
+  const githubConnected = Boolean(task.project.github_repo_owner && task.project.github_repo_name)
   const canEdit = !taskReadOnly && Boolean(onEdit) && (task.project.created_by === user.id || task.created_by === user.id)
 
   const postComment = async (event) => {
@@ -127,7 +154,14 @@ function TaskDetailsModal({ isOpen, task, user, onClose, onEdit, readOnly = fals
             <div><dt>Assigned to</dt><dd>{task.assignee?.name || 'Unassigned'}</dd></div>
             <div><dt>Created by</dt><dd>{task.creator?.name || 'Creator unavailable'}</dd></div>
             <div><dt>Due date</dt><dd>{task.due_date ? formatDate(task.due_date) : 'No due date'}</dd></div>
+            <div><dt>Commit reference</dt><dd><code>TASK-{task.id}</code></dd></div>
           </dl>
+
+          {githubConnected && <section className="task-github-activity" aria-labelledby="task-github-activity-title">
+            <div className="task-github-heading"><h3 id="task-github-activity-title">GitHub Activity</h3><button type="button" onClick={() => setGitHubRevision((current) => current + 1)} disabled={githubLoading}>Refresh</button></div>
+            {githubError && <div className="github-activity-error" role="alert">{githubError}</div>}
+            {githubLoading ? <SkeletonRows count={2} variant="commits" /> : <GitHubCommitList commits={githubCommits} emptyMessage="No GitHub commits reference this task yet." />}
+          </section>}
 
           <section className="task-comments" aria-labelledby="task-comments-title">
             <h3 id="task-comments-title">Comments</h3>

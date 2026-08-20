@@ -59,3 +59,22 @@ export function formatCommentTimestamp(value) {
   }).format(date)
   return `${day}, ${time}`
 }
+
+export function formatRelativeTime(value) {
+  if (!value) return 'Time unavailable'
+  const timestamp = new Date(value).getTime()
+  if (!Number.isFinite(timestamp)) return 'Time unavailable'
+  const seconds = Math.round((timestamp - Date.now()) / 1000)
+  const ranges = [
+    [60, 'second'],
+    [60, 'minute'],
+    [24, 'hour'],
+    [7, 'day'],
+  ]
+  let amount = seconds
+  for (const [size, unit] of ranges) {
+    if (Math.abs(amount) < size) return new Intl.RelativeTimeFormat('en', { numeric: 'auto' }).format(Math.round(amount), unit)
+    amount /= size
+  }
+  return formatCreatedDate(value)
+}

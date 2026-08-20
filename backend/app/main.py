@@ -11,6 +11,7 @@ from app.migrations import apply_additive_schema_updates
 from app.models import User
 from app.routes.comments import router as comments_router
 from app.routes.documents import router as documents_router
+from app.routes.github import router as github_router
 from app.routes.projects import router as projects_router
 from app.routes.rag import router as rag_router
 from app.routes.tasks import router as tasks_router
@@ -37,6 +38,7 @@ app.include_router(projects_router)
 app.include_router(tasks_router)
 app.include_router(comments_router)
 app.include_router(documents_router)
+app.include_router(github_router)
 app.include_router(rag_router)
 
 

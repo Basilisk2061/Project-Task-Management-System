@@ -81,3 +81,7 @@ export function DragHandleIcon() {
 export function FileIcon() {
   return <svg {...iconProps}><path d="M6 3.5h7l5 5V20a1.5 1.5 0 0 1-1.5 1.5h-10A1.5 1.5 0 0 1 5 20V5a1.5 1.5 0 0 1 1-1.5Z" /><path d="M13 3.5V9h5M8.5 14h7M8.5 17h5" /></svg>
 }
+
+export function GitHubIcon() {
+  return <svg {...iconProps}><path d="M15 21v-3.5c0-1 .1-1.7-.5-2.3 2.8-.3 5.7-1.4 5.7-6.2A4.8 4.8 0 0 0 19 5.7 4.5 4.5 0 0 0 18.9 2S17.8 1.7 15 3.3a12.8 12.8 0 0 0-6 0C6.2 1.7 5.1 2 5.1 2A4.5 4.5 0 0 0 5 5.7 4.8 4.8 0 0 0 3.8 9c0 4.8 2.9 5.9 5.7 6.2-.4.4-.6.9-.6 1.8v4" /><path d="M9 18c-3 .9-3-1.5-4.2-2" /></svg>
+}

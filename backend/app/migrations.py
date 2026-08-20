@@ -21,6 +21,18 @@ def apply_additive_schema_updates(engine: Engine) -> None:
             ))
         if "completed_at" not in project_columns:
             connection.execute(text("ALTER TABLE projects ADD COLUMN completed_at DATETIME"))
+        github_project_columns = {
+            "github_repo_owner": "VARCHAR",
+            "github_repo_name": "VARCHAR",
+            "github_repo_url": "VARCHAR",
+            "github_default_branch": "VARCHAR",
+            "github_connected_at": "DATETIME",
+        }
+        for column_name, column_type in github_project_columns.items():
+            if column_name not in project_columns:
+                connection.execute(text(
+                    f"ALTER TABLE projects ADD COLUMN {column_name} {column_type}"
+                ))
 
         user_columns = {column["name"] for column in inspector.get_columns("users")}
         if "professional_role" not in user_columns:
