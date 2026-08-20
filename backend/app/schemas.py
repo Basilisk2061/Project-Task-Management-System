@@ -316,3 +316,42 @@ class RagAskResponse(BaseModel):
     answer: str
     grounded: bool
     sources: list[RagAskSource]
+
+
+class AssistantHistoryUser(BaseModel):
+    id: int
+    name: str
+
+
+class AssistantHistorySource(BaseModel):
+    document_id: int | None
+    file_name: str
+
+
+class AssistantHistoryMessageResponse(BaseModel):
+    id: int
+    role: Literal["user", "assistant"]
+    content: str
+    grounded: bool | None
+    sources: list[AssistantHistorySource]
+    created_at: datetime
+    user: AssistantHistoryUser
+
+
+class AssistantConversationCreator(BaseModel):
+    id: int
+    name: str
+
+
+class AssistantConversationResponse(BaseModel):
+    id: int
+    project_id: int
+    created_by: int
+    title: str
+    created_at: datetime
+    updated_at: datetime
+    creator: AssistantConversationCreator
+
+
+class RagConversationAskResponse(RagAskResponse):
+    conversation: AssistantConversationResponse

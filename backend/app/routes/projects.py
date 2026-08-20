@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from app.auth import get_current_user
 from app.database import get_db
 from app.document_storage import delete_project_storage
-from app.models import Comment, Document, Project, ProjectMember, Task, User
+from app.models import AssistantConversation, AssistantMessage, Comment, Document, Project, ProjectMember, Task, User
 from app.rag.vector_store import delete_project_index
 from app.schemas import (
     ProjectCreate,
@@ -147,6 +147,12 @@ def delete_project(
     db.query(Document).filter(Document.project_id == project.id).delete(
         synchronize_session=False
     )
+    db.query(AssistantMessage).filter(AssistantMessage.project_id == project.id).delete(
+        synchronize_session=False
+    )
+    db.query(AssistantConversation).filter(
+        AssistantConversation.project_id == project.id
+    ).delete(synchronize_session=False)
     task_ids = select(Task.id).where(Task.project_id == project.id)
     db.query(Comment).filter(Comment.task_id.in_(task_ids)).delete(
         synchronize_session=False

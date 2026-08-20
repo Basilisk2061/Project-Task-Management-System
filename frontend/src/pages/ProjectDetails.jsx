@@ -280,6 +280,8 @@ function ProjectDetails() {
           <ProjectAssistant
             projectId={project.id}
             projectName={project.name}
+            currentUser={user}
+            projectOwnerId={project.created_by}
             documents={documents}
             documentsLoading={documentsLoading}
             documentRevision={assistantDocumentRevision}

@@ -1307,6 +1307,7 @@ body {
 
 /* Project Assistant */
 .project-assistant-card {
+  position: relative;
   margin-top: 1rem;
   border: 1px solid #dcdee1;
   border-radius: 0.45rem;
@@ -1332,6 +1333,26 @@ body {
   align-items: center;
   gap: 0.45rem;
 }
+
+.assistant-header-button { display: inline-flex; min-height: 30px; align-items: center; gap: 0.3rem; padding: 0.3rem 0.48rem; border: 1px solid #d6d9dc; border-radius: 0.3rem; background: #fff; color: #5c636a; font-size: 0.67rem; font-weight: 700; white-space: nowrap; transition: color 170ms ease, border-color 170ms ease, background-color 170ms ease, transform 170ms ease; }
+.assistant-header-button:hover:not(:disabled), .assistant-header-button.active { border-color: #bfc3c7; background-color: #f5f6f6; color: #24282c; transform: translateY(-1px); }
+.assistant-header-button:disabled { opacity: 0.55; }
+.assistant-header-button svg { width: 15px; height: 15px; }
+
+.assistant-history-panel { position: absolute; z-index: 8; top: 62px; right: 0.8rem; width: min(330px, calc(100% - 1.6rem)); max-height: 360px; overflow-y: auto; visibility: hidden; padding: 0.55rem; border: 1px solid #d9dcdf; border-radius: 0.4rem; background: #fff; box-shadow: 0 12px 30px rgba(24, 28, 32, 0.14); opacity: 0; pointer-events: none; transform: translateY(-5px); transition: opacity 200ms var(--motion-ease), transform 200ms var(--motion-ease), visibility 0s linear 200ms; }
+.assistant-history-panel.open { visibility: visible; opacity: 1; pointer-events: auto; transform: translateY(0); transition-delay: 0s; }
+.assistant-history-panel-heading { display: flex; align-items: center; justify-content: space-between; padding: 0.35rem 0.45rem 0.55rem; color: #555c63; font-size: 0.72rem; }
+.assistant-history-panel-heading strong { color: #30353a; font-size: 0.76rem; }
+.assistant-history-empty { margin: 0; padding: 1.1rem 0.5rem; color: #7b8187; font-size: 0.75rem; text-align: center; }
+.assistant-history-item { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; border-radius: 0.3rem; transition: background-color 170ms ease, opacity 170ms ease, transform 170ms ease; }
+.assistant-history-item:hover, .assistant-history-item.active { background: #f3f4f5; }
+.assistant-history-item > button:first-child { display: flex; min-width: 0; padding: 0.58rem 0.55rem; overflow: hidden; border: 0; background: transparent; flex-direction: column; text-align: left; }
+.assistant-history-item strong, .assistant-history-item span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.assistant-history-item strong { color: #353a3f; font-size: 0.75rem; font-weight: 680; }
+.assistant-history-item span { margin-top: 0.15rem; color: #80868c; font-size: 0.65rem; }
+.assistant-history-delete { display: grid; width: 28px; height: 28px; padding: 0; place-items: center; border: 0; border-radius: 0.25rem; background: transparent; color: #9a4545; }
+.assistant-history-delete:hover { background: #f6eaea; color: #792d2d; }
+.assistant-history-delete svg { width: 15px; height: 15px; }
 
 .assistant-icon-button {
   display: grid;
@@ -1378,6 +1399,7 @@ body {
 }
 
 .project-assistant-body { min-height: 0; animation: assistant-body-enter 230ms var(--motion-ease) both; }
+.assistant-history-stack { display: flex; width: 100%; min-height: 0; flex: 1 1 auto; flex-direction: column; }
 .assistant-state,
 .assistant-empty-state {
   display: flex;
@@ -1411,6 +1433,7 @@ body {
 .assistant-prepare-state .taskflow-button { flex: 0 0 auto; }
 
 .assistant-chat { display: flex; min-height: 0; padding: 1rem 1.5rem 1.25rem; flex-direction: column; }
+.assistant-chat.history-only { flex: 1 1 auto; padding-top: 0.85rem; border-top: 1px solid #e5e7e9; }
 .assistant-message-area {
   flex: 1 1 auto;
   max-height: 370px;
@@ -1430,6 +1453,11 @@ body {
   color: #7b8187;
   text-align: center;
 }
+
+.assistant-conversation-empty { display: flex; min-height: 220px; align-items: center; justify-content: center; gap: 1rem; padding: 1.5rem; flex-direction: column; color: #666d74; text-align: center; }
+.assistant-conversation-empty strong { font-size: 0.82rem; font-weight: 650; }
+.assistant-conversation-empty .taskflow-button { display: inline-flex; align-items: center; gap: 0.35rem; }
+.assistant-conversation-empty svg { width: 16px; height: 16px; }
 
 .assistant-chat-empty strong { color: #53595f; font-size: 0.82rem; font-weight: 650; }
 .assistant-chat-empty span { margin-top: 0.3rem; font-size: 0.73rem; }
@@ -1546,6 +1574,7 @@ body {
 .project-assistant-card.expanded .project-assistant-header { padding: 1rem 1.25rem; }
 .project-assistant-card.expanded .project-assistant-body { display: flex; flex: 1 1 auto; overflow: hidden; }
 .project-assistant-card.expanded .assistant-chat { width: min(100%, 900px); height: 100%; margin: 0 auto; padding: 1.25rem 1.5rem; }
+.project-assistant-card.expanded .assistant-history-stack .assistant-chat { height: auto; }
 .project-assistant-card.expanded .assistant-message-area { max-height: none; }
 .project-assistant-card.expanded .assistant-message { width: min(88%, 800px); }
 .project-assistant-card.expanded .assistant-message.user { width: min(70%, 660px); }
@@ -1582,6 +1611,7 @@ body {
   .project-assistant-column .project-assistant-header p { max-width: 235px; }
   .project-assistant-column .project-assistant-body { display: flex; flex: 1 1 auto; overflow: hidden; }
   .project-assistant-column .assistant-chat { width: 100%; height: 100%; padding: 0.9rem 1rem 1rem; }
+  .project-assistant-column .assistant-history-stack .assistant-chat { height: auto; }
   .project-assistant-column .assistant-message-area { max-height: none; }
   .project-assistant-column .assistant-message { width: 96%; }
   .project-assistant-column .assistant-message.user { width: 84%; }
@@ -2183,12 +2213,17 @@ body {
   .assistant-message,
   .assistant-thinking,
   .assistant-sources,
+  .assistant-history-panel,
   .assistant-expanded-layer,
   .modal-layer,
   .taskflow-modal,
   .loading-spinner,
   .button-spinner {
     animation: none;
+  }
+
+  .assistant-history-panel {
+    transition: none;
   }
 
   .project-progress-track span {

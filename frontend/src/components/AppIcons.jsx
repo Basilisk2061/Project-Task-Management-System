@@ -46,6 +46,10 @@ export function ExpandIcon() {
   return <svg {...iconProps}><path d="M9 4H4v5M15 4h5v5M20 15v5h-5M4 15v5h5" /><path d="m4 9 5-5M15 4l5 5M20 15l-5 5M9 20l-5-5" /></svg>
 }
 
+export function HistoryIcon() {
+  return <svg {...iconProps}><path d="M4 12a8 8 0 1 0 2.35-5.65L4 8.7" /><path d="M4 4v4.7h4.7M12 8v4l2.7 1.7" /></svg>
+}
+
 export function DragHandleIcon() {
   return <svg {...iconProps}><circle cx="9" cy="7" r="1" fill="currentColor" stroke="none" /><circle cx="15" cy="7" r="1" fill="currentColor" stroke="none" /><circle cx="9" cy="12" r="1" fill="currentColor" stroke="none" /><circle cx="15" cy="12" r="1" fill="currentColor" stroke="none" /><circle cx="9" cy="17" r="1" fill="currentColor" stroke="none" /><circle cx="15" cy="17" r="1" fill="currentColor" stroke="none" /></svg>
 }

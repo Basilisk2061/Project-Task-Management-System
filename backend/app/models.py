@@ -1,6 +1,18 @@
 from datetime import datetime
 
-from sqlalchemy import Column, Date, DateTime, ForeignKey, Integer, String, Text, UniqueConstraint
+from sqlalchemy import (
+    Boolean,
+    CheckConstraint,
+    Column,
+    Date,
+    DateTime,
+    ForeignKey,
+    Index,
+    Integer,
+    String,
+    Text,
+    UniqueConstraint,
+)
 from sqlalchemy.orm import relationship
 
 from app.database import Base
@@ -32,6 +44,8 @@ class User(Base):
     )
     comments = relationship("Comment", back_populates="user")
     uploaded_documents = relationship("Document", back_populates="uploader")
+    assistant_conversations = relationship("AssistantConversation", back_populates="creator")
+    assistant_messages = relationship("AssistantMessage", back_populates="user")
 
 
 class Project(Base):
@@ -49,6 +63,16 @@ class Project(Base):
     members = relationship("ProjectMember", back_populates="project")
     tasks = relationship("Task", back_populates="project")
     documents = relationship("Document", back_populates="project")
+    assistant_conversations = relationship(
+        "AssistantConversation",
+        back_populates="project",
+        cascade="all, delete-orphan",
+    )
+    assistant_messages = relationship(
+        "AssistantMessage",
+        back_populates="project",
+        cascade="all, delete-orphan",
+    )
 
 
 class ProjectMember(Base):
@@ -124,3 +148,48 @@ class Document(Base):
 
     project = relationship("Project", back_populates="documents")
     uploader = relationship("User", back_populates="uploaded_documents")
+
+
+class AssistantMessage(Base):
+    __tablename__ = "assistant_messages"
+    __table_args__ = (
+        CheckConstraint("role IN ('user', 'assistant')", name="ck_assistant_message_role"),
+        Index("ix_assistant_messages_project_created", "project_id", "created_at", "id"),
+        Index("ix_assistant_messages_conversation_created", "conversation_id", "created_at", "id"),
+    )
+
+    id = Column(Integer, primary_key=True)
+    project_id = Column(Integer, ForeignKey("projects.id"), nullable=False)
+    conversation_id = Column(Integer, ForeignKey("assistant_conversations.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    role = Column(String, nullable=False)
+    content = Column(Text, nullable=False)
+    grounded = Column(Boolean, nullable=True)
+    sources_json = Column(Text, nullable=True)
+    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+
+    project = relationship("Project", back_populates="assistant_messages")
+    conversation = relationship("AssistantConversation", back_populates="messages")
+    user = relationship("User", back_populates="assistant_messages")
+
+
+class AssistantConversation(Base):
+    __tablename__ = "assistant_conversations"
+    __table_args__ = (
+        Index("ix_assistant_conversations_project_updated", "project_id", "updated_at", "id"),
+    )
+
+    id = Column(Integer, primary_key=True)
+    project_id = Column(Integer, ForeignKey("projects.id"), nullable=False)
+    created_by = Column(Integer, ForeignKey("users.id"), nullable=False)
+    title = Column(String, nullable=False, default="New Chat")
+    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+    updated_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+
+    project = relationship("Project", back_populates="assistant_conversations")
+    creator = relationship("User", back_populates="assistant_conversations")
+    messages = relationship(
+        "AssistantMessage",
+        back_populates="conversation",
+        cascade="all, delete-orphan",
+    )
