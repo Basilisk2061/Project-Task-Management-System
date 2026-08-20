@@ -1,0 +1,11 @@
+body {
+  background-color: #f5f6f8;
+  color: #212529;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+.app-panel {
+  max-width: 680px;
+  border-radius: 0.25rem;
+}
+

@@ -1,0 +1,26 @@
+# Python
+backend/.venv/
+backend/venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Node / Vite
+frontend/node_modules/
+frontend/dist/
+*.local
+
+# Local database
+*.db
+*.db-journal
+
+# IDE and operating system files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
