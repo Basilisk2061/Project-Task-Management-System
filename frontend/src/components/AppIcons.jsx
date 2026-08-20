@@ -22,6 +22,18 @@ export function TasksIcon() {
   return <svg {...iconProps}><rect x="4" y="4" width="16" height="16" rx="2" /><path d="m8 12 2.5 2.5L16 9" /></svg>
 }
 
+export function CheckCircleIcon() {
+  return <svg {...iconProps}><circle cx="12" cy="12" r="8.5" /><path d="m8.5 12 2.2 2.2 4.8-5" /></svg>
+}
+
+export function ClockIcon() {
+  return <svg {...iconProps}><circle cx="12" cy="12" r="8.5" /><path d="M12 7.5V12l3 1.8" /></svg>
+}
+
+export function CalendarIcon() {
+  return <svg {...iconProps}><rect x="4" y="5.5" width="16" height="14" rx="2" /><path d="M8 3.5v4M16 3.5v4M4 9.5h16" /></svg>
+}
+
 export function LogoutIcon() {
   return <svg {...iconProps}><path d="M10 5H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h4" /><path d="m15 8 4 4-4 4M19 12H9" /></svg>
 }

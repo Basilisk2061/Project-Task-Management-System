@@ -51,7 +51,7 @@ function AppLayout() {
       <div className="app-workspace">
         <header className="app-header">
           <h1>{location.pathname.startsWith('/app/projects/') ? 'Project Details' : pageTitles[location.pathname] || 'TaskFlow'}</h1>
-          <span>{user.name}</span>
+          <div className="app-header-user"><small>Signed in as</small><strong>{user.name}</strong></div>
         </header>
         <main className="app-content">
           <div className="page-transition" key={location.pathname}>
