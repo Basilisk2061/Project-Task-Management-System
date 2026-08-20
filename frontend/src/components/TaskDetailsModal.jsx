@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { CloseIcon, TrashIcon } from './AppIcons.jsx'
 import ConfirmModal from './ConfirmModal.jsx'
+import { SkeletonRows } from './Skeleton.jsx'
 import { createComment, deleteComment, getCommentError, getTaskComments } from '../services/comments.js'
 import { formatCommentTimestamp, formatDate } from '../utils/date.js'
 
@@ -132,7 +133,7 @@ function TaskDetailsModal({ isOpen, task, user, onClose, onEdit }) {
             {error && <div className="alert alert-danger py-2" role="alert">{error}</div>}
 
             {loadingComments ? (
-              <div className="comment-loading"><span className="loading-spinner" aria-hidden="true" /><span>Loading comments...</span></div>
+              <SkeletonRows count={2} variant="comments" />
             ) : comments.length === 0 ? (
               <p className="comments-empty">No comments yet.</p>
             ) : (

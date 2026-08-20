@@ -2,10 +2,12 @@ import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { CloseIcon } from './AppIcons.jsx'
 import { getProjectError } from '../services/projects.js'
+import { useToast } from './ToastProvider.jsx'
 
 const emptyForm = { name: '', description: '', start_date: '', deadline: '' }
 
 function ProjectFormModal({ isOpen, mode, project, onClose, onSubmit, onSaved }) {
+  const { showToast } = useToast()
   const [form, setForm] = useState(emptyForm)
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
@@ -81,10 +83,12 @@ function ProjectFormModal({ isOpen, mode, project, onClose, onSubmit, onSaved })
       setSubmitting(false)
       finishClose(() => onSaved(savedProject))
     } catch (requestError) {
-      setError(getProjectError(
+      const message = getProjectError(
         requestError,
         mode === 'create' ? 'Unable to create project.' : 'Unable to save project.',
-      ))
+      )
+      setError(message)
+      showToast(message, { type: 'error' })
       setSubmitting(false)
     }
   }

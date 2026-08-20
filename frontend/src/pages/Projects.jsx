@@ -2,11 +2,14 @@ import { useEffect, useState } from 'react'
 import { Link, useOutletContext } from 'react-router-dom'
 import { FolderIcon, PlusIcon } from '../components/AppIcons.jsx'
 import ProjectFormModal from '../components/ProjectFormModal.jsx'
+import { ProjectGridSkeleton } from '../components/Skeleton.jsx'
+import { useToast } from '../components/ToastProvider.jsx'
 import { createProject, getProjectError, getProjects } from '../services/projects.js'
 import { formatCreatedDate, formatDate } from '../utils/date.js'
 
 function Projects() {
   const { user } = useOutletContext()
+  const { showToast } = useToast()
   const [projects, setProjects] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -35,7 +38,7 @@ function Projects() {
       {error && <div className="alert alert-danger" role="alert">{error}</div>}
 
       {loading ? (
-        <div className="content-loading" aria-live="polite"><span className="loading-spinner" aria-hidden="true" /><span>Loading projects...</span></div>
+        <ProjectGridSkeleton />
       ) : projects.length === 0 ? (
         <section className="projects-empty-state">
           <FolderIcon />
@@ -64,7 +67,10 @@ function Projects() {
 
       <ProjectFormModal isOpen={createModalOpen} mode="create"
         onClose={() => setCreateModalOpen(false)} onSubmit={createProject}
-        onSaved={(project) => setProjects((current) => [project, ...current])} />
+        onSaved={(project) => {
+          setProjects((current) => [project, ...current])
+          showToast('Project created.')
+        }} />
     </div>
   )
 }

@@ -6,6 +6,8 @@ import ConfirmModal from '../components/ConfirmModal.jsx'
 import DocumentUploadModal from '../components/DocumentUploadModal.jsx'
 import ProjectFormModal from '../components/ProjectFormModal.jsx'
 import ProjectAssistant from '../components/ProjectAssistant.jsx'
+import { ProjectDetailsSkeleton, SkeletonRows } from '../components/Skeleton.jsx'
+import { useToast } from '../components/ToastProvider.jsx'
 import { PROFESSIONAL_ROLE_FALLBACK } from '../constants/options.js'
 import TaskBoard from '../components/TaskBoard.jsx'
 import TaskDetailsModal from '../components/TaskDetailsModal.jsx'
@@ -26,6 +28,7 @@ function ProjectDetails() {
   const { projectId } = useParams()
   const { user } = useOutletContext()
   const navigate = useNavigate()
+  const { showToast } = useToast()
   const [project, setProject] = useState(null)
   const [members, setMembers] = useState([])
   const [tasks, setTasks] = useState([])
@@ -51,8 +54,10 @@ function ProjectDetails() {
   const [removingDocumentId, setRemovingDocumentId] = useState(null)
   const [documentAction, setDocumentAction] = useState('')
   const [assistantDocumentRevision, setAssistantDocumentRevision] = useState(0)
+  const [taskMotion, setTaskMotion] = useState(null)
   const removeTimer = useRef(null)
   const documentTimer = useRef(null)
+  const taskMotionTimer = useRef(null)
   const completedTaskCount = tasks.filter((task) => task.status === 'completed').length
   const taskCount = tasks.length
   const progressPercent = taskCount === 0 ? 0 : Math.round((completedTaskCount / taskCount) * 100)
@@ -89,6 +94,7 @@ function ProjectDetails() {
   useEffect(() => () => {
     window.clearTimeout(removeTimer.current)
     window.clearTimeout(documentTimer.current)
+    window.clearTimeout(taskMotionTimer.current)
   }, [])
 
   useEffect(() => {
@@ -96,7 +102,7 @@ function ProjectDetails() {
     return () => window.cancelAnimationFrame(frame)
   }, [progressPercent])
 
-  if (loading) return <div className="content-loading"><span className="loading-spinner" aria-hidden="true" /><span>Loading project...</span></div>
+  if (loading) return <ProjectDetailsSkeleton />
 
   if (error || !project) {
     return <section className="project-error-state"><h2>Project unavailable</h2><p>{error || 'Project not found.'}</p><Link to="/app/projects">Back to Projects</Link></section>
@@ -105,6 +111,7 @@ function ProjectDetails() {
   const isOwner = project.created_by === user.id
 
   const finishMemberRemoval = (member) => {
+    showToast(`${member.name} removed from the project.`)
     setRemovingUserId(member.user_id)
     removeTimer.current = window.setTimeout(() => {
       setMembers((current) => current.filter((item) => item.user_id !== member.user_id))
@@ -120,8 +127,15 @@ function ProjectDetails() {
     try {
       const updated = await updateTaskStatus(task.id, statusValue)
       setTasks((current) => current.map((item) => item.id === updated.id ? updated : item))
+      setTaskMotion({ id: updated.id, completed: statusValue === 'completed' && task.status !== 'completed' })
+      window.clearTimeout(taskMotionTimer.current)
+      taskMotionTimer.current = window.setTimeout(() => setTaskMotion(null), 380)
+      const statusLabel = statusValue === 'completed' ? 'Completed' : statusValue === 'in_progress' ? 'In Progress' : 'To Do'
+      showToast(statusValue === 'completed' && task.status !== 'completed' ? 'Task completed.' : `Task moved to ${statusLabel}.`)
     } catch (requestError) {
-      setTaskError(getTaskError(requestError, 'Unable to update task status.'))
+      const message = getTaskError(requestError, 'Unable to update task status.')
+      setTaskError(message)
+      showToast(message, { type: 'error' })
     } finally {
       setSavingStatusId(null)
     }
@@ -170,6 +184,7 @@ function ProjectDetails() {
   }
 
   const finishDocumentRemoval = (document) => {
+    showToast('Document deleted.')
     setAssistantDocumentRevision((current) => current + 1)
     setRemovingDocumentId(document.id)
     documentTimer.current = window.setTimeout(() => {
@@ -238,6 +253,7 @@ function ProjectDetails() {
         </header>
         {taskError && <div className="alert alert-danger mx-3 mt-3" role="alert">{taskError}</div>}
         <TaskBoard tasks={tasks} user={user} savingStatusId={savingStatusId}
+          taskMotion={taskMotion}
           onStatusChange={changeTaskStatus}
           onView={setDetailsTask}
           onEdit={(task) => { setSelectedTask(task); setTaskModalOpen(true) }}
@@ -251,7 +267,7 @@ function ProjectDetails() {
         </header>
         {documentError && <div className="alert alert-danger mx-3 mt-3" role="alert">{documentError}</div>}
         {documentsLoading ? (
-          <div className="documents-loading"><span className="loading-spinner" aria-hidden="true" /><span>Loading documents...</span></div>
+          <SkeletonRows count={2} variant="documents" />
         ) : documents.length === 0 ? (
           <div className="documents-empty"><strong>No documents uploaded yet.</strong><span>Upload project PDFs to keep important information in one place.</span></div>
         ) : (
@@ -291,13 +307,13 @@ function ProjectDetails() {
       </div>
 
       <ProjectFormModal isOpen={editOpen} mode="edit" project={project}
-        onClose={() => setEditOpen(false)} onSubmit={(data) => updateProject(project.id, data)} onSaved={setProject} />
+        onClose={() => setEditOpen(false)} onSubmit={(data) => updateProject(project.id, data)} onSaved={(savedProject) => { setProject(savedProject); showToast('Project updated.') }} />
       <ConfirmModal isOpen={deleteOpen} projectName={project.name}
         onClose={() => setDeleteOpen(false)} onConfirm={() => deleteProject(project.id)}
-        onConfirmed={() => navigate('/app/projects', { replace: true })} />
+        onConfirmed={() => { showToast('Project deleted.'); navigate('/app/projects', { replace: true }) }} />
       <AddMemberModal isOpen={addMemberOpen} projectId={project.id}
         onClose={() => setAddMemberOpen(false)}
-        onMemberAdded={(member) => setMembers((current) => [...current, member])} />
+        onMemberAdded={(member) => { setMembers((current) => [...current, member]); showToast(`${member.name} added to the project.`) }} />
       <ConfirmModal isOpen={Boolean(memberToRemove)}
         title="Remove member?"
         message={memberToRemove ? `Remove ${memberToRemove.name} from this project?` : ''}
@@ -310,7 +326,11 @@ function ProjectDetails() {
       <TaskFormModal isOpen={taskModalOpen} mode={selectedTask ? 'edit' : 'create'}
         task={selectedTask} members={members} onClose={() => { setTaskModalOpen(false); setSelectedTask(null) }}
         onSubmit={(data) => selectedTask ? updateTask(selectedTask.id, data) : createTask(project.id, data)}
-        onSaved={(saved) => setTasks((current) => selectedTask ? current.map((task) => task.id === saved.id ? saved : task) : [saved, ...current])} />
+        onSaved={(saved) => {
+          const editing = Boolean(selectedTask)
+          setTasks((current) => editing ? current.map((task) => task.id === saved.id ? saved : task) : [saved, ...current])
+          showToast(editing ? 'Task updated.' : 'Task created.')
+        }} />
       <TaskDetailsModal isOpen={Boolean(detailsTask)} task={detailsTask} user={user}
         onClose={() => setDetailsTask(null)}
         onEdit={(task) => { setSelectedTask(task); setTaskModalOpen(true) }} />
@@ -319,6 +339,7 @@ function ProjectDetails() {
         onSaved={(savedDocument) => {
           setDocuments((current) => [savedDocument, ...current])
           setAssistantDocumentRevision((current) => current + 1)
+          showToast('PDF uploaded.')
         }} />
       <ConfirmModal isOpen={Boolean(documentToDelete)} title="Delete document?"
         message={documentToDelete ? `This will permanently delete “${documentToDelete.file_name}”.` : ''}
@@ -329,7 +350,7 @@ function ProjectDetails() {
         message={taskToDelete ? `This will permanently delete “${taskToDelete.title}”.` : ''}
         confirmLabel="Delete Task" loadingLabel="Deleting..." fallbackError="Unable to delete task."
         onClose={() => setTaskToDelete(null)} onConfirm={() => deleteTask(taskToDelete.id)}
-        onConfirmed={() => { setTasks((current) => current.filter((task) => task.id !== taskToDelete.id)); setTaskToDelete(null) }} />
+        onConfirmed={() => { setTasks((current) => current.filter((task) => task.id !== taskToDelete.id)); setTaskToDelete(null); showToast('Task deleted.') }} />
     </div>
   )
 }

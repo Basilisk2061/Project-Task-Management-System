@@ -3,10 +3,12 @@ import { createPortal } from 'react-dom'
 import { CloseIcon } from './AppIcons.jsx'
 import { PROFESSIONAL_ROLE_FALLBACK } from '../constants/options.js'
 import { getTaskError } from '../services/tasks.js'
+import { useToast } from './ToastProvider.jsx'
 
 const emptyForm = { title: '', description: '', priority: 'medium', assigned_to: '', due_date: '' }
 
 function TaskFormModal({ isOpen, mode, task, members, onClose, onSubmit, onSaved }) {
+  const { showToast } = useToast()
   const [form, setForm] = useState(emptyForm)
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
@@ -54,7 +56,9 @@ function TaskFormModal({ isOpen, mode, task, members, onClose, onSubmit, onSaved
       setSubmitting(false)
       finishClose(() => onSaved(saved))
     } catch (requestError) {
-      setError(getTaskError(requestError, mode === 'create' ? 'Unable to create task.' : 'Unable to save task.'))
+      const message = getTaskError(requestError, mode === 'create' ? 'Unable to create task.' : 'Unable to save task.')
+      setError(message)
+      showToast(message, { type: 'error' })
       setSubmitting(false)
     }
   }

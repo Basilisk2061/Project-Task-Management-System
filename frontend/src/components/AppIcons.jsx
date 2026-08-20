@@ -34,6 +34,18 @@ export function CalendarIcon() {
   return <svg {...iconProps}><rect x="4" y="5.5" width="16" height="14" rx="2" /><path d="M8 3.5v4M16 3.5v4M4 9.5h16" /></svg>
 }
 
+export function InfoIcon() {
+  return <svg {...iconProps}><circle cx="12" cy="12" r="8.5" /><path d="M12 11v5M12 8h.01" /></svg>
+}
+
+export function AlertCircleIcon() {
+  return <svg {...iconProps}><circle cx="12" cy="12" r="8.5" /><path d="M12 7.5v5M12 16h.01" /></svg>
+}
+
+export function AlertTriangleIcon() {
+  return <svg {...iconProps}><path d="M10.3 4.5 3.7 17a1.7 1.7 0 0 0 1.5 2.5h13.6a1.7 1.7 0 0 0 1.5-2.5L13.7 4.5a1.9 1.9 0 0 0-3.4 0Z" /><path d="M12 9v4M12 16h.01" /></svg>
+}
+
 export function LogoutIcon() {
   return <svg {...iconProps}><path d="M10 5H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h4" /><path d="m15 8 4 4-4 4M19 12H9" /></svg>
 }

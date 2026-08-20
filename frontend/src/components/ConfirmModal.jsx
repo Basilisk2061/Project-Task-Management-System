@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { CloseIcon } from './AppIcons.jsx'
 import { getProjectError } from '../services/projects.js'
+import { useToast } from './ToastProvider.jsx'
 
 function ConfirmModal({
   isOpen,
@@ -15,6 +16,7 @@ function ConfirmModal({
   onConfirm,
   onConfirmed,
 }) {
+  const { showToast } = useToast()
   const [closing, setClosing] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [error, setError] = useState('')
@@ -56,7 +58,9 @@ function ConfirmModal({
       setDeleting(false)
       finishClose(onConfirmed)
     } catch (requestError) {
-      setError(getProjectError(requestError, fallbackError))
+      const message = getProjectError(requestError, fallbackError)
+      setError(message)
+      showToast(message, { type: 'error' })
       setDeleting(false)
     }
   }

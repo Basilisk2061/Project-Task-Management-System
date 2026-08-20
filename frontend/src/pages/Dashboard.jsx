@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
 import { Link, useOutletContext } from 'react-router-dom'
 import { CalendarIcon, CheckCircleIcon, ClockIcon, FolderIcon, TasksIcon } from '../components/AppIcons.jsx'
+import SkeletonBlock, { SkeletonRows } from '../components/Skeleton.jsx'
 import { getProjectError, getProjects } from '../services/projects.js'
 import { getMyTasks } from '../services/tasks.js'
-import { formatDate } from '../utils/date.js'
+import { formatDate, formatTaskDueDate } from '../utils/date.js'
 
 const STATUS_LABELS = { todo: 'To Do', in_progress: 'In Progress', completed: 'Completed' }
 
@@ -16,9 +17,14 @@ function getLocalDateValue() {
 
 function getDueDetails(dueDate, today) {
   if (!dueDate) return { label: 'No due date', state: '' }
-  if (dueDate < today) return { label: 'Overdue', state: 'overdue' }
-  if (dueDate === today) return { label: 'Due today', state: 'due-today' }
-  return { label: `Due ${formatDate(dueDate, { compact: true })}`, state: '' }
+  return { label: formatTaskDueDate(dueDate), state: dueDate < today ? 'overdue' : dueDate === today ? 'due-today' : '' }
+}
+
+function getGreeting() {
+  const hour = new Date().getHours()
+  if (hour >= 5 && hour < 12) return 'Good morning'
+  if (hour >= 12 && hour < 18) return 'Good afternoon'
+  return 'Good evening'
 }
 
 function Dashboard() {
@@ -42,10 +48,10 @@ function Dashboard() {
   const completedTasks = tasks.filter((task) => task.status === 'completed')
   const pendingTasks = tasks.filter((task) => task.status !== 'completed')
   const summaries = [
-    { label: 'My Projects', value: loading ? '—' : projects.length, context: 'Projects you can access', icon: FolderIcon },
-    { label: 'My Tasks', value: loading ? '—' : tasks.length, context: 'Assigned to you', icon: TasksIcon },
-    { label: 'Completed', value: loading ? '—' : completedTasks.length, context: 'Tasks completed', icon: CheckCircleIcon },
-    { label: 'Pending', value: loading ? '—' : pendingTasks.length, context: 'Still in progress', icon: ClockIcon },
+    { label: 'My Projects', value: projects.length, context: 'Projects you can access', icon: FolderIcon },
+    { label: 'My Tasks', value: tasks.length, context: 'Assigned to you', icon: TasksIcon },
+    { label: 'Completed', value: completedTasks.length, context: 'Tasks completed', icon: CheckCircleIcon },
+    { label: 'Pending', value: pendingTasks.length, context: 'Still in progress', icon: ClockIcon },
   ]
   const today = getLocalDateValue()
   const upcomingTasks = pendingTasks
@@ -61,15 +67,14 @@ function Dashboard() {
 
   return (
     <div className="dashboard-page">
-      <div className="dashboard-intro"><p className="page-subtitle">Track your projects, tasks, and upcoming work.</p></div>
+      <div className="dashboard-intro"><h2>{user?.name ? `${getGreeting()}, ${user.name}` : 'Dashboard'}</h2><p className="page-subtitle">Here&apos;s what&apos;s happening with your projects.</p></div>
       {error && <div className="alert alert-danger" role="alert">{error}</div>}
 
       <section className="summary-grid" aria-label="Work summary">
         {summaries.map(({ label, value, context, icon: Icon }, index) => (
           <article className="summary-card" key={label} style={{ '--card-delay': `${index * 45 + 70}ms` }}>
             <div className="summary-card-heading"><span>{label}</span><Icon /></div>
-            <strong>{value}</strong>
-            <small>{context}</small>
+            {loading ? <><SkeletonBlock className="summary-value" /><SkeletonBlock className="summary-context" /></> : <><strong>{value}</strong><small>{context}</small></>}
           </article>
         ))}
       </section>
@@ -81,7 +86,7 @@ function Dashboard() {
             <Link to="/app/projects">View all</Link>
           </header>
           {loading ? (
-            <div className="dashboard-empty-state"><span className="loading-spinner" aria-hidden="true" /><p>Loading projects...</p></div>
+            <SkeletonRows count={4} variant="projects" />
           ) : projects.length === 0 ? (
             <div className="dashboard-empty-state"><FolderIcon /><strong>No projects yet</strong><p>Projects you create or join will appear here.</p></div>
           ) : (
@@ -113,7 +118,7 @@ function Dashboard() {
               <Link to="/app/tasks">View tasks</Link>
             </header>
             {loading ? (
-              <div className="dashboard-empty-state compact"><span className="loading-spinner" aria-hidden="true" /><p>Loading tasks...</p></div>
+              <SkeletonRows count={3} variant="tasks" />
             ) : upcomingTasks.length === 0 ? (
               <div className="dashboard-empty-state compact"><CalendarIcon /><strong>No upcoming tasks</strong><p>Assigned tasks with deadlines will appear here.</p></div>
             ) : (
@@ -134,7 +139,7 @@ function Dashboard() {
           <section className="dashboard-panel">
             <header className="dashboard-panel-header"><div><h2>Active Work</h2><p>Tasks currently awaiting completion</p></div></header>
             {loading ? (
-              <div className="dashboard-empty-state compact"><span className="loading-spinner" aria-hidden="true" /><p>Loading active work...</p></div>
+              <SkeletonRows count={3} variant="tasks" />
             ) : activeTasks.length === 0 ? (
               <div className="dashboard-empty-state compact"><CheckCircleIcon /><strong>All caught up</strong><p>You have no active assigned tasks.</p></div>
             ) : (

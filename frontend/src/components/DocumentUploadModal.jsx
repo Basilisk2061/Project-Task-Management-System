@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { CloseIcon, FileIcon } from './AppIcons.jsx'
 import { getDocumentError, uploadProjectDocument } from '../services/documents.js'
 import { DOCUMENT_TYPES } from '../constants/options.js'
+import { useToast } from './ToastProvider.jsx'
 
 const MAX_PDF_SIZE = 10 * 1024 * 1024
 const PDF_CONTENT_TYPES = ['application/pdf', 'application/x-pdf']
@@ -16,6 +17,7 @@ function validatePdf(file) {
 }
 
 function DocumentUploadModal({ isOpen, projectId, onClose, onSaved }) {
+  const { showToast } = useToast()
   const [selectedFile, setSelectedFile] = useState(null)
   const [documentType, setDocumentType] = useState('')
   const [error, setError] = useState('')
@@ -82,7 +84,9 @@ function DocumentUploadModal({ isOpen, projectId, onClose, onSaved }) {
       setUploading(false)
       finishClose(() => onSaved(savedDocument))
     } catch (requestError) {
-      setError(await getDocumentError(requestError, 'Unable to upload PDF.'))
+      const message = await getDocumentError(requestError, 'Unable to upload PDF.')
+      setError(message)
+      showToast(message, { type: 'error' })
       setUploading(false)
     }
   }

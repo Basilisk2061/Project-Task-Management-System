@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { CloseIcon, ExpandIcon, HistoryIcon, PlusIcon, TrashIcon } from './AppIcons.jsx'
 import ConfirmModal from './ConfirmModal.jsx'
+import { SkeletonRows } from './Skeleton.jsx'
+import { useToast } from './ToastProvider.jsx'
 import {
   askProjectAssistant,
   createProjectAssistantConversation,
@@ -49,6 +51,7 @@ function ProjectAssistant({
   documentRevision,
   onOpenDocument,
 }) {
+  const { showToast } = useToast()
   const [assistantStatus, setAssistantStatus] = useState('checking')
   const [preparing, setPreparing] = useState(false)
   const [question, setQuestion] = useState('')
@@ -218,6 +221,7 @@ function ProjectAssistant({
 
   const prepareAssistant = async () => {
     const expectedRevision = revisionRef.current
+    const updatingExistingIndex = effectiveStatus === 'stale'
     setPreparing(true)
     setAssistantStatus('preparing')
     setError('')
@@ -225,6 +229,7 @@ function ProjectAssistant({
       await prepareProjectAssistant(projectId)
       if (revisionRef.current === expectedRevision) {
         setAssistantStatus('ready')
+        showToast(updatingExistingIndex ? 'Project Assistant updated.' : 'Project Assistant prepared.')
       }
     } catch (requestError) {
       if (revisionRef.current === expectedRevision) {
@@ -280,6 +285,7 @@ function ProjectAssistant({
     const remaining = conversations.filter((conversation) => conversation.id !== deletedConversation.id)
     setConversations(remaining)
     setConversationToDelete(null)
+    showToast('Conversation deleted.')
     if (activeConversationRef.current !== deletedConversation.id) return
     askRequestRef.current += 1
     const nextId = remaining[0]?.id ?? null
@@ -404,10 +410,7 @@ function ProjectAssistant({
     <div className={`assistant-chat${canAsk ? '' : ' history-only'}`}>
       <div className="assistant-message-area" ref={messageAreaRef} aria-live="polite">
         {historyLoading && messages.length === 0 ? (
-          <div className="assistant-chat-empty">
-            <span className="loading-spinner" aria-hidden="true" />
-            <span>Loading conversation...</span>
-          </div>
+          <SkeletonRows count={3} variant="messages" />
         ) : messages.length === 0 && !asking ? (
           <div className="assistant-chat-empty">
             <strong>Ask a question about the project documents.</strong>
@@ -495,7 +498,9 @@ function ProjectAssistant({
         {...(!historyOpen ? { inert: '' } : {})}
       >
           <div className="assistant-history-panel-heading"><strong>Conversations</strong><span>{conversations.length}</span></div>
-          {conversations.length === 0 ? (
+          {historyLoading && conversations.length === 0 ? (
+            <SkeletonRows count={3} variant="history" />
+          ) : conversations.length === 0 ? (
             <p className="assistant-history-empty">No conversations yet.</p>
           ) : conversations.map((conversation) => {
             const canDelete = currentUser.id === projectOwnerId || currentUser.id === conversation.created_by

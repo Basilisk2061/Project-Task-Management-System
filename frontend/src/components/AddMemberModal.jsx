@@ -4,8 +4,11 @@ import { CloseIcon } from './AppIcons.jsx'
 import { UserIcon } from './FormIcons.jsx'
 import { addProjectMember, getProjectError, searchUsers } from '../services/projects.js'
 import { PROFESSIONAL_ROLE_FALLBACK } from '../constants/options.js'
+import { SkeletonRows } from './Skeleton.jsx'
+import { useToast } from './ToastProvider.jsx'
 
 function AddMemberModal({ isOpen, projectId, onClose, onMemberAdded }) {
+  const { showToast } = useToast()
   const [query, setQuery] = useState('')
   const [results, setResults] = useState([])
   const [searching, setSearching] = useState(false)
@@ -71,7 +74,9 @@ function AddMemberModal({ isOpen, projectId, onClose, onMemberAdded }) {
       setResults((current) => current.filter((user) => user.id !== userId))
       onMemberAdded(member)
     } catch (requestError) {
-      setError(getProjectError(requestError, 'Unable to add project member.'))
+      const message = getProjectError(requestError, 'Unable to add project member.')
+      setError(message)
+      showToast(message, { type: 'error' })
     } finally {
       setAddingUserId(null)
     }
@@ -99,7 +104,7 @@ function AddMemberModal({ isOpen, projectId, onClose, onMemberAdded }) {
         <p className="member-results-label">People</p>
         <div className="member-search-results" aria-live="polite">
           {searching ? (
-            <p className="member-search-message"><span className="loading-spinner" aria-hidden="true" /> Searching...</p>
+            <SkeletonRows count={3} variant="members" />
           ) : results.length === 0 ? (
             <p className="member-search-message">No users found.</p>
           ) : results.map((user) => (

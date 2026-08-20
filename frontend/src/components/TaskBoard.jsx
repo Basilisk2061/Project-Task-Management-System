@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import { DragHandleIcon } from './AppIcons.jsx'
-import { formatDate } from '../utils/date.js'
+import { formatTaskDueDate } from '../utils/date.js'
 
 const columns = [
   { status: 'todo', label: 'To Do' },
@@ -15,7 +15,7 @@ function getLocalDateValue() {
   return `${date.getFullYear()}-${month}-${day}`
 }
 
-function TaskBoard({ tasks, user, onEdit, onDelete, onStatusChange, onView, savingStatusId, showProject = false }) {
+function TaskBoard({ tasks, user, onEdit, onDelete, onStatusChange, onView, savingStatusId, showProject = false, taskMotion = null }) {
   const today = getLocalDateValue()
   const [draggedTaskId, setDraggedTaskId] = useState(null)
   const [dragOverStatus, setDragOverStatus] = useState(null)
@@ -86,23 +86,18 @@ function TaskBoard({ tasks, user, onEdit, onDelete, onStatusChange, onView, savi
           >
             <header><h3>{column.label}</h3><span>{columnTasks.length}</span></header>
             <div className="task-column-content">
-              {columnTasks.length === 0 ? <p className="task-column-empty">No tasks</p> : columnTasks.map((task, index) => {
+              {dragOverStatus === column.status && <div className="task-drop-placeholder" aria-hidden="true">Drop task here</div>}
+              {columnTasks.length === 0 ? (dragOverStatus === column.status ? null : <p className="task-column-empty">No tasks</p>) : columnTasks.map((task, index) => {
                 const isOwner = task.project.created_by === user.id
                 const canEdit = isOwner || task.created_by === user.id
                 const canStatus = isOwner || task.created_by === user.id || task.assigned_to === user.id
                 const incomplete = task.status !== 'completed'
                 const overdue = Boolean(task.due_date && task.due_date < today && incomplete)
                 const dueToday = Boolean(task.due_date && task.due_date === today && incomplete)
-                const dueLabel = overdue
-                  ? 'Overdue'
-                  : dueToday
-                    ? 'Due today'
-                    : task.due_date
-                      ? `Due ${formatDate(task.due_date, { compact: true })}`
-                      : 'No due date'
+                const dueLabel = formatTaskDueDate(task.due_date)
                 return (
                   <article
-                    className={`task-card${onView ? ' viewable' : ''}${draggedTaskId === task.id ? ' dragging' : ''}`}
+                    className={`task-card${onView ? ' viewable' : ''}${draggedTaskId === task.id ? ' dragging' : ''}${taskMotion?.id === task.id ? ' just-moved' : ''}${taskMotion?.id === task.id && taskMotion.completed ? ' just-completed' : ''}`}
                     key={task.id}
                     style={{ '--task-delay': `${Math.min(index, 6) * 35}ms` }}
                     onClick={() => onView?.(task)}
