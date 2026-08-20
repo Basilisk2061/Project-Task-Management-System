@@ -3,11 +3,14 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator, model_validator
 
+from app.constants import PROFESSIONAL_ROLES
+
 
 class UserRegister(BaseModel):
     name: str = Field(min_length=1, max_length=100)
     email: EmailStr
     password: str = Field(min_length=1, max_length=128)
+    professional_role: str
 
     @field_validator("name")
     @classmethod
@@ -16,6 +19,14 @@ class UserRegister(BaseModel):
         if not cleaned_name:
             raise ValueError("Name is required")
         return cleaned_name
+
+    @field_validator("professional_role")
+    @classmethod
+    def validate_professional_role(cls, value: str) -> str:
+        cleaned_role = value.strip()
+        if cleaned_role not in PROFESSIONAL_ROLES:
+            raise ValueError("Select a valid professional role")
+        return cleaned_role
 
 
 class UserLogin(BaseModel):
@@ -30,6 +41,7 @@ class UserResponse(BaseModel):
     name: str
     email: EmailStr
     role: str
+    professional_role: str | None
 
 
 class TokenResponse(BaseModel):
@@ -97,12 +109,14 @@ class ProjectMemberResponse(BaseModel):
     name: str
     email: EmailStr
     role: str
+    professional_role: str | None
 
 
 class UserSearchResponse(BaseModel):
     id: int
     name: str
     email: EmailStr
+    professional_role: str | None
 
 
 class TaskUserResponse(BaseModel):
@@ -110,6 +124,7 @@ class TaskUserResponse(BaseModel):
 
     id: int
     name: str
+    professional_role: str | None
 
 
 class TaskProjectResponse(BaseModel):
@@ -213,6 +228,7 @@ class DocumentResponse(BaseModel):
     id: int
     project_id: int
     file_name: str
+    document_type: str
     uploaded_by: int
     created_at: datetime
     uploader: TaskUserResponse
@@ -247,6 +263,10 @@ class RagIndexBuildResponse(BaseModel):
     embedding_model: str
     vector_dimension: int
     status: Literal["ready"]
+
+
+class RagStatusResponse(BaseModel):
+    status: Literal["ready", "missing", "stale"]
 
 
 class RagSearchRequest(BaseModel):

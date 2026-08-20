@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { CloseIcon } from './AppIcons.jsx'
+import { PROFESSIONAL_ROLE_FALLBACK } from '../constants/options.js'
 import { getTaskError } from '../services/tasks.js'
 
 const emptyForm = { title: '', description: '', priority: 'medium', assigned_to: '', due_date: '' }
@@ -71,7 +72,7 @@ function TaskFormModal({ isOpen, mode, task, members, onClose, onSubmit, onSaved
           <div className="mb-3"><label className="form-label" htmlFor="task-description">Description</label><textarea className="form-control" id="task-description" name="description" rows="3" value={form.description} onChange={updateField} /></div>
           <div className="task-form-grid">
             <div><label className="form-label" htmlFor="task-priority">Priority</label><select className="form-select" id="task-priority" name="priority" value={form.priority} onChange={updateField}><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option></select></div>
-            <div><label className="form-label" htmlFor="task-assignee">Assignee</label><select className="form-select" id="task-assignee" name="assigned_to" value={form.assigned_to} onChange={updateField}><option value="">Unassigned</option>{members.map((member) => <option key={member.user_id} value={member.user_id}>{member.name}{member.role === 'Owner' ? ' (Owner)' : ''}</option>)}</select></div>
+            <div><label className="form-label" htmlFor="task-assignee">Assignee</label><select className="form-select" id="task-assignee" name="assigned_to" value={form.assigned_to} onChange={updateField}><option value="">Unassigned</option>{members.map((member) => <option key={member.user_id} value={member.user_id}>{member.name} — {member.professional_role || PROFESSIONAL_ROLE_FALLBACK}{member.role === 'Owner' ? ' (Owner)' : ''}</option>)}</select></div>
           </div>
           <div className="mt-3"><label className="form-label" htmlFor="task-due-date">Due Date</label><input className="form-control" id="task-due-date" name="due_date" type="date" value={form.due_date} onChange={updateField} /></div>
           <div className="modal-actions"><button className="btn btn-light taskflow-button" type="button" onClick={() => finishClose()} disabled={submitting}>Cancel</button><button className="btn taskflow-button primary" type="submit" disabled={submitting}>{submitting && <span className="button-spinner" aria-hidden="true" />}{submitting ? (mode === 'create' ? 'Creating...' : 'Saving...') : (mode === 'create' ? 'Create Task' : 'Save Changes')}</button></div>

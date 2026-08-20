@@ -22,6 +22,7 @@ from app.rag.vector_store import (
     ProjectIndexStorageError,
     TOP_K,
     build_project_index,
+    get_project_index_status,
     search_project_index,
 )
 from app.routes.projects import get_accessible_project
@@ -32,6 +33,7 @@ from app.schemas import (
     RagProjectInspectionResponse,
     RagSearchRequest,
     RagSearchResponse,
+    RagStatusResponse,
 )
 
 
@@ -156,6 +158,24 @@ def inspect_project_documents(
         "total_chunks": total_chunks,
         "documents": document_inspections,
     }
+
+
+@router.get(
+    "/api/projects/{project_id}/rag/status",
+    response_model=RagStatusResponse,
+)
+def read_project_index_status(
+    project_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> dict:
+    project = get_accessible_project(project_id, current_user.id, db)
+    documents = get_project_documents(project.id, db)
+    try:
+        index_status = get_project_index_status(project.id, documents)
+    except ProjectIndexStorageError as exc:
+        raise_rag_http_error(exc)
+    return {"status": index_status}
 
 
 @router.post(

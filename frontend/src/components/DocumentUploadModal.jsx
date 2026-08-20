@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { CloseIcon, FileIcon } from './AppIcons.jsx'
 import { getDocumentError, uploadProjectDocument } from '../services/documents.js'
+import { DOCUMENT_TYPES } from '../constants/options.js'
 
 const MAX_PDF_SIZE = 10 * 1024 * 1024
 const PDF_CONTENT_TYPES = ['application/pdf', 'application/x-pdf']
@@ -16,6 +17,7 @@ function validatePdf(file) {
 
 function DocumentUploadModal({ isOpen, projectId, onClose, onSaved }) {
   const [selectedFile, setSelectedFile] = useState(null)
+  const [documentType, setDocumentType] = useState('')
   const [error, setError] = useState('')
   const [uploading, setUploading] = useState(false)
   const [closing, setClosing] = useState(false)
@@ -24,6 +26,7 @@ function DocumentUploadModal({ isOpen, projectId, onClose, onSaved }) {
   useEffect(() => {
     if (!isOpen) return
     setSelectedFile(null)
+    setDocumentType('')
     setError('')
     setUploading(false)
     setClosing(false)
@@ -75,7 +78,7 @@ function DocumentUploadModal({ isOpen, projectId, onClose, onSaved }) {
     setUploading(true)
     setError('')
     try {
-      const savedDocument = await uploadProjectDocument(projectId, selectedFile)
+      const savedDocument = await uploadProjectDocument(projectId, selectedFile, documentType)
       setUploading(false)
       finishClose(() => onSaved(savedDocument))
     } catch (requestError) {
@@ -102,9 +105,15 @@ function DocumentUploadModal({ isOpen, projectId, onClose, onSaved }) {
           </label>
           <input className="visually-hidden" id="project-document-file" type="file" accept=".pdf,application/pdf" onChange={selectFile} disabled={uploading} />
           <p className="document-upload-help">PDF files up to 10 MB.</p>
+          <label className="form-label mt-3" htmlFor="project-document-type">Document Type</label>
+          <select className="form-select" id="project-document-type" value={documentType}
+            onChange={(event) => setDocumentType(event.target.value)} disabled={uploading} required>
+            <option value="" disabled>Select document type</option>
+            {DOCUMENT_TYPES.map((type) => <option key={type} value={type}>{type}</option>)}
+          </select>
           <div className="modal-actions">
             <button className="btn btn-light taskflow-button" type="button" onClick={() => finishClose()} disabled={uploading}>Cancel</button>
-            <button className="btn taskflow-button primary" type="submit" disabled={uploading || !selectedFile}>{uploading && <span className="button-spinner" aria-hidden="true" />}{uploading ? 'Uploading...' : 'Upload PDF'}</button>
+            <button className="btn taskflow-button primary" type="submit" disabled={uploading || !selectedFile || !documentType}>{uploading && <span className="button-spinner" aria-hidden="true" />}{uploading ? 'Uploading...' : 'Upload PDF'}</button>
           </div>
         </form>
       </section>

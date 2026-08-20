@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { CloseIcon } from './AppIcons.jsx'
 import { UserIcon } from './FormIcons.jsx'
 import { addProjectMember, getProjectError, searchUsers } from '../services/projects.js'
+import { PROFESSIONAL_ROLE_FALLBACK } from '../constants/options.js'
 
 function AddMemberModal({ isOpen, projectId, onClose, onMemberAdded }) {
   const [query, setQuery] = useState('')
@@ -17,7 +18,7 @@ function AddMemberModal({ isOpen, projectId, onClose, onMemberAdded }) {
     if (!isOpen) return
     setQuery('')
     setResults([])
-    setSearching(false)
+    setSearching(true)
     setAddingUserId(null)
     setError('')
     setClosing(false)
@@ -33,12 +34,8 @@ function AddMemberModal({ isOpen, projectId, onClose, onMemberAdded }) {
   }, [isOpen])
 
   useEffect(() => {
+    if (!isOpen) return undefined
     const trimmedQuery = query.trim()
-    if (!isOpen || trimmedQuery.length < 2) {
-      setResults([])
-      setSearching(false)
-      return undefined
-    }
 
     let active = true
     setSearching(true)
@@ -50,7 +47,7 @@ function AddMemberModal({ isOpen, projectId, onClose, onMemberAdded }) {
           if (active) setError(getProjectError(requestError, 'Unable to search users.'))
         })
         .finally(() => { if (active) setSearching(false) })
-    }, 300)
+    }, trimmedQuery ? 300 : 0)
 
     return () => {
       active = false
@@ -99,16 +96,15 @@ function AddMemberModal({ isOpen, projectId, onClose, onMemberAdded }) {
 
         {error && <div className="alert alert-danger py-2 mt-3" role="alert">{error}</div>}
 
+        <p className="member-results-label">People</p>
         <div className="member-search-results" aria-live="polite">
-          {query.trim().length < 2 ? (
-            <p className="member-search-message">Search for a registered TaskFlow user.</p>
-          ) : searching ? (
+          {searching ? (
             <p className="member-search-message"><span className="loading-spinner" aria-hidden="true" /> Searching...</p>
           ) : results.length === 0 ? (
             <p className="member-search-message">No users found.</p>
           ) : results.map((user) => (
             <div className="member-search-result" key={user.id}>
-              <div><strong>{user.name}</strong><span>{user.email}</span></div>
+              <div><strong>{user.name}</strong><span className="member-search-professional-role">{user.professional_role || PROFESSIONAL_ROLE_FALLBACK}</span><span>{user.email}</span></div>
               <button className="btn taskflow-button secondary" type="button"
                 onClick={() => addMember(user.id)} disabled={addingUserId !== null}>
                 {addingUserId === user.id ? 'Adding...' : 'Add'}

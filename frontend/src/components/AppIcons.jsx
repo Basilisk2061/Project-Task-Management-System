@@ -42,6 +42,10 @@ export function CloseIcon() {
   return <svg {...iconProps}><path d="m6 6 12 12M18 6 6 18" /></svg>
 }
 
+export function ExpandIcon() {
+  return <svg {...iconProps}><path d="M9 4H4v5M15 4h5v5M20 15v5h-5M4 15v5h5" /><path d="m4 9 5-5M15 4l5 5M20 15l-5 5M9 20l-5-5" /></svg>
+}
+
 export function DragHandleIcon() {
   return <svg {...iconProps}><circle cx="9" cy="7" r="1" fill="currentColor" stroke="none" /><circle cx="15" cy="7" r="1" fill="currentColor" stroke="none" /><circle cx="9" cy="12" r="1" fill="currentColor" stroke="none" /><circle cx="15" cy="12" r="1" fill="currentColor" stroke="none" /><circle cx="9" cy="17" r="1" fill="currentColor" stroke="none" /><circle cx="15" cy="17" r="1" fill="currentColor" stroke="none" /></svg>
 }

@@ -4,6 +4,7 @@ from sqlalchemy import Column, Date, DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import relationship
 
 from app.database import Base
+from app.constants import DEFAULT_DOCUMENT_TYPE
 
 
 class User(Base):
@@ -14,6 +15,7 @@ class User(Base):
     email = Column(String, nullable=False, unique=True, index=True)
     password_hash = Column(String, nullable=False)
     role = Column(String, nullable=False, default="user")
+    professional_role = Column(String, nullable=True)
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
 
     created_projects = relationship("Project", back_populates="creator")
@@ -111,6 +113,12 @@ class Document(Base):
     project_id = Column(Integer, ForeignKey("projects.id"), nullable=False)
     file_name = Column(String, nullable=False)
     file_path = Column(String, nullable=False)
+    document_type = Column(
+        String,
+        nullable=False,
+        default=DEFAULT_DOCUMENT_TYPE,
+        server_default=DEFAULT_DOCUMENT_TYPE,
+    )
     uploaded_by = Column(Integer, ForeignKey("users.id"), nullable=False)
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
 

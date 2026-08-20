@@ -183,6 +183,7 @@ def list_project_members(
         "name": project.creator.name,
         "email": project.creator.email,
         "role": "Owner",
+        "professional_role": project.creator.professional_role,
     }]
     result.extend({
         "membership_id": membership.id,
@@ -190,6 +191,7 @@ def list_project_members(
         "name": user.name,
         "email": user.email,
         "role": "Member",
+        "professional_role": user.professional_role,
     } for membership, user in members)
     return result
 
@@ -197,32 +199,28 @@ def list_project_members(
 @router.get("/{project_id}/users/search", response_model=list[UserSearchResponse])
 def search_project_users(
     project_id: int,
-    q: str = Query(min_length=2, max_length=100),
+    q: str | None = Query(default=None, max_length=100),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> list[User]:
     project = get_owned_project(project_id, current_user.id, db)
-    cleaned_query = q.strip()
-    if len(cleaned_query) < 2:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="Search query must contain at least 2 characters",
-        )
-    search_term = f"%{cleaned_query}%"
+    cleaned_query = (q or "").strip()
     existing_member_ids = select(ProjectMember.user_id).where(
         ProjectMember.project_id == project.id
     )
-    return (
+    available_users = (
         db.query(User)
         .filter(
             User.id != project.created_by,
             ~User.id.in_(existing_member_ids),
-            or_(User.name.ilike(search_term), User.email.ilike(search_term)),
         )
-        .order_by(User.name.asc())
-        .limit(10)
-        .all()
     )
+    if cleaned_query:
+        search_term = f"%{cleaned_query}%"
+        available_users = available_users.filter(
+            or_(User.name.ilike(search_term), User.email.ilike(search_term))
+        )
+    return available_users.order_by(User.name.asc()).limit(10).all()
 
 
 @router.post(
@@ -277,6 +275,7 @@ def add_project_member(
         "name": user.name,
         "email": user.email,
         "role": "Member",
+        "professional_role": user.professional_role,
     }
 
 

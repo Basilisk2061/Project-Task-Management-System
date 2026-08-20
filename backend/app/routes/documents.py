@@ -1,12 +1,13 @@
 from pathlib import Path
 from uuid import uuid4
 
-from fastapi import APIRouter, Depends, File, HTTPException, Response, UploadFile, status
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Response, UploadFile, status
 from fastapi.responses import FileResponse
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.auth import get_current_user
+from app.constants import DOCUMENT_TYPES
 from app.database import get_db
 from app.document_storage import (
     get_database_storage_path,
@@ -71,10 +72,17 @@ def list_project_documents(
 async def upload_project_document(
     project_id: int,
     file: UploadFile = File(...),
+    document_type: str = Form(...),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> Document:
     project = get_accessible_project(project_id, current_user.id, db)
+    cleaned_document_type = document_type.strip()
+    if cleaned_document_type not in DOCUMENT_TYPES:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="Select a valid document type",
+        )
     original_filename = clean_original_filename(file.filename)
     if file.content_type not in PDF_CONTENT_TYPES:
         raise HTTPException(
@@ -130,6 +138,7 @@ async def upload_project_document(
         project_id=project.id,
         file_name=original_filename,
         file_path=get_database_storage_path(destination),
+        document_type=cleaned_document_type,
         uploaded_by=current_user.id,
     )
     db.add(document)

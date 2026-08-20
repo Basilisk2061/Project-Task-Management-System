@@ -189,6 +189,16 @@ def _load_validated_index(project_id: int, documents: list[Document], embedding_
     return index, chunks, metadata
 
 
+def get_project_index_status(project_id: int, documents: list[Document]) -> str:
+    try:
+        _load_validated_index(project_id, documents, get_configured_embedding_model())
+    except ProjectIndexNotFoundError:
+        return "missing"
+    except ProjectIndexStaleError:
+        return "stale"
+    return "ready"
+
+
 def search_project_index(
     project_id: int,
     documents: list[Document],

@@ -95,6 +95,8 @@ def parse_grounded_response(content: str, source_count: int) -> GroundedAnswer:
     grounded_matches = re.findall(r"<GROUNDED>\s*(true|false)\s*</GROUNDED>", content, re.IGNORECASE)
     source_matches = re.findall(r"<SOURCES>\s*(.*?)\s*</SOURCES>", content, re.IGNORECASE | re.DOTALL)
     answer_matches = re.findall(r"<ANSWER>\s*(.*?)\s*</ANSWER>", content, re.IGNORECASE | re.DOTALL)
+    if not answer_matches and len(re.findall(r"<ANSWER>", content, re.IGNORECASE)) == 1:
+        answer_matches = re.findall(r"<ANSWER>\s*(.*?)\s*$", content, re.IGNORECASE | re.DOTALL)
     if len(grounded_matches) != 1 or len(source_matches) != 1 or len(answer_matches) != 1:
         raise NvidiaResponseError("NVIDIA returned an invalid grounded-answer format")
 

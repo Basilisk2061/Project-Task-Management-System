@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from app import models  # Import models so SQLAlchemy registers their tables.
 from app.auth import create_access_token, get_current_user, hash_password, verify_password
 from app.database import Base, engine, get_db
+from app.migrations import apply_additive_schema_updates
 from app.models import User
 from app.routes.comments import router as comments_router
 from app.routes.documents import router as documents_router
@@ -17,6 +18,7 @@ from app.schemas import TokenResponse, UserLogin, UserRegister, UserResponse
 
 
 Base.metadata.create_all(bind=engine)
+apply_additive_schema_updates(engine)
 
 app = FastAPI(title="TaskFlow API")
 
@@ -57,6 +59,7 @@ def register_user(data: UserRegister, db: Session = Depends(get_db)) -> User:
         name=data.name,
         email=normalized_email,
         password_hash=hash_password(data.password),
+        professional_role=data.professional_role,
     )
     db.add(user)
 

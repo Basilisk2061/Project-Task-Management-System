@@ -3,10 +3,11 @@ import { Link, useNavigate } from 'react-router-dom'
 import AuthLayout from '../components/AuthLayout.jsx'
 import { EyeIcon, LockIcon, UserIcon } from '../components/FormIcons.jsx'
 import api from '../services/api.js'
+import { PROFESSIONAL_ROLES } from '../constants/options.js'
 
 function Register() {
   const navigate = useNavigate()
-  const [form, setForm] = useState({ name: '', email: '', password: '', confirmPassword: '' })
+  const [form, setForm] = useState({ name: '', email: '', professional_role: '', password: '', confirmPassword: '' })
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [showPasswords, setShowPasswords] = useState(false)
@@ -30,6 +31,7 @@ function Register() {
         name: form.name,
         email: form.email,
         password: form.password,
+        professional_role: form.professional_role,
       })
       navigate('/login', { replace: true, state: { registered: true } })
     } catch (requestError) {
@@ -66,6 +68,14 @@ function Register() {
                 value={form.email} onChange={updateField} autoComplete="email"
                 placeholder="you@example.com" required />
             </div>
+          </div>
+          <div className="mb-3">
+            <label className="form-label" htmlFor="professional_role">Professional Role</label>
+            <select className="form-select" id="professional_role" name="professional_role"
+              value={form.professional_role} onChange={updateField} required>
+              <option value="" disabled>Select your role</option>
+              {PROFESSIONAL_ROLES.map((role) => <option key={role} value={role}>{role}</option>)}
+            </select>
           </div>
           <div className="mb-3">
             <label className="form-label" htmlFor="password">Password</label>

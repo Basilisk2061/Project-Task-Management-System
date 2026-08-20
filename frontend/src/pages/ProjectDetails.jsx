@@ -5,6 +5,8 @@ import AddMemberModal from '../components/AddMemberModal.jsx'
 import ConfirmModal from '../components/ConfirmModal.jsx'
 import DocumentUploadModal from '../components/DocumentUploadModal.jsx'
 import ProjectFormModal from '../components/ProjectFormModal.jsx'
+import ProjectAssistant from '../components/ProjectAssistant.jsx'
+import { PROFESSIONAL_ROLE_FALLBACK } from '../constants/options.js'
 import TaskBoard from '../components/TaskBoard.jsx'
 import TaskDetailsModal from '../components/TaskDetailsModal.jsx'
 import TaskFormModal from '../components/TaskFormModal.jsx'
@@ -48,6 +50,7 @@ function ProjectDetails() {
   const [documentToDelete, setDocumentToDelete] = useState(null)
   const [removingDocumentId, setRemovingDocumentId] = useState(null)
   const [documentAction, setDocumentAction] = useState('')
+  const [assistantDocumentRevision, setAssistantDocumentRevision] = useState(0)
   const removeTimer = useRef(null)
   const documentTimer = useRef(null)
   const completedTaskCount = tasks.filter((task) => task.status === 'completed').length
@@ -167,6 +170,7 @@ function ProjectDetails() {
   }
 
   const finishDocumentRemoval = (document) => {
+    setAssistantDocumentRevision((current) => current + 1)
     setRemovingDocumentId(document.id)
     documentTimer.current = window.setTimeout(() => {
       setDocuments((current) => current.filter((item) => item.id !== document.id))
@@ -178,6 +182,8 @@ function ProjectDetails() {
   return (
     <div className="project-details-page">
       <Link className="back-link" to="/app/projects">← Back to Projects</Link>
+      <div className="project-details-layout">
+        <div className="project-details-main">
       <section className="project-details-card">
         <div className="project-details-heading">
           <div><h2>{project.name}</h2><p>{project.description || 'No description provided.'}</p></div>
@@ -215,7 +221,7 @@ function ProjectDetails() {
           {members.map((member, index) => (
             <div className={`member-row${removingUserId === member.user_id ? ' removing' : ''}`}
               key={member.user_id} style={{ '--member-delay': `${Math.min(index, 6) * 35}ms` }}>
-              <div className="member-identity"><strong>{member.name}</strong><span>{member.email}</span></div>
+              <div className="member-identity"><strong>{member.name}</strong><span className="member-professional-role">{member.professional_role || PROFESSIONAL_ROLE_FALLBACK}</span><span>{member.email}</span></div>
               <span className="member-role">{member.role}</span>
               {isOwner && member.role === 'Member' ? (
                 <button className="member-remove-button" type="button" onClick={() => setMemberToRemove(member)}>Remove</button>
@@ -256,7 +262,7 @@ function ProjectDetails() {
               const downloading = documentAction === `download-${document.id}`
               return (
                 <article className={`document-row${removingDocumentId === document.id ? ' removing' : ''}`} key={document.id} style={{ '--document-delay': `${Math.min(index, 6) * 35}ms` }}>
-                  <div className="document-identity"><span className="document-icon"><FileIcon /></span><div><strong>{document.file_name}</strong><span>Uploaded by {document.uploader.name} · {formatCreatedDate(document.created_at)}</span></div></div>
+                  <div className="document-identity"><span className="document-icon"><FileIcon /></span><div><strong>{document.file_name}</strong><span className="document-type-badge">{document.document_type || 'Other'}</span><span>Uploaded by {document.uploader.name} · {formatCreatedDate(document.created_at)}</span></div></div>
                   <div className="document-actions">
                     <button type="button" onClick={() => openDocument(document)} disabled={Boolean(documentAction)}>{opening ? 'Opening...' : 'Open'}</button>
                     <button type="button" onClick={() => downloadDocumentFile(document)} disabled={Boolean(documentAction)}>{downloading ? 'Downloading...' : 'Download'}</button>
@@ -268,6 +274,19 @@ function ProjectDetails() {
           </div>
         )}
       </section>
+
+        </div>
+        <aside className="project-assistant-column">
+          <ProjectAssistant
+            projectId={project.id}
+            projectName={project.name}
+            documents={documents}
+            documentsLoading={documentsLoading}
+            documentRevision={assistantDocumentRevision}
+            onOpenDocument={openDocument}
+          />
+        </aside>
+      </div>
 
       <ProjectFormModal isOpen={editOpen} mode="edit" project={project}
         onClose={() => setEditOpen(false)} onSubmit={(data) => updateProject(project.id, data)} onSaved={setProject} />
@@ -295,7 +314,10 @@ function ProjectDetails() {
         onEdit={(task) => { setSelectedTask(task); setTaskModalOpen(true) }} />
       <DocumentUploadModal isOpen={documentUploadOpen} projectId={project.id}
         onClose={() => setDocumentUploadOpen(false)}
-        onSaved={(savedDocument) => setDocuments((current) => [savedDocument, ...current])} />
+        onSaved={(savedDocument) => {
+          setDocuments((current) => [savedDocument, ...current])
+          setAssistantDocumentRevision((current) => current + 1)
+        }} />
       <ConfirmModal isOpen={Boolean(documentToDelete)} title="Delete document?"
         message={documentToDelete ? `This will permanently delete “${documentToDelete.file_name}”.` : ''}
         confirmLabel="Delete Document" loadingLabel="Deleting..." fallbackError="Unable to delete document."
