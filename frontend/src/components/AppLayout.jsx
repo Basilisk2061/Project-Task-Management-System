@@ -50,12 +50,12 @@ function AppLayout() {
       <Sidebar user={user} onLogout={logout} />
       <div className="app-workspace">
         <header className="app-header">
-          <h1>{pageTitles[location.pathname] || 'TaskFlow'}</h1>
+          <h1>{location.pathname.startsWith('/app/projects/') ? 'Project Details' : pageTitles[location.pathname] || 'TaskFlow'}</h1>
           <span>{user.name}</span>
         </header>
         <main className="app-content">
           <div className="page-transition" key={location.pathname}>
-            <Outlet />
+            <Outlet context={{ user }} />
           </div>
         </main>
       </div>

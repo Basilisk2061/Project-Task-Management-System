@@ -25,3 +25,19 @@ export function TasksIcon() {
 export function LogoutIcon() {
   return <svg {...iconProps}><path d="M10 5H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h4" /><path d="m15 8 4 4-4 4M19 12H9" /></svg>
 }
+
+export function PlusIcon() {
+  return <svg {...iconProps}><path d="M12 5v14M5 12h14" /></svg>
+}
+
+export function EditIcon() {
+  return <svg {...iconProps}><path d="M13.5 6.5 17.5 10.5M5 19l3.5-.7L19 7.8a2.1 2.1 0 0 0-3-3L5.7 15.2Z" /></svg>
+}
+
+export function TrashIcon() {
+  return <svg {...iconProps}><path d="M4 7h16M9 7V4h6v3M6.5 7l.8 13h9.4l.8-13M10 11v5M14 11v5" /></svg>
+}
+
+export function CloseIcon() {
+  return <svg {...iconProps}><path d="m6 6 12 12M18 6 6 18" /></svg>
+}
