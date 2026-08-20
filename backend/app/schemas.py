@@ -50,6 +50,8 @@ class TokenResponse(BaseModel):
 
 
 class ProjectCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     name: str = Field(min_length=1, max_length=200)
     description: str | None = None
     start_date: date | None = None
@@ -71,6 +73,8 @@ class ProjectCreate(BaseModel):
 
 
 class ProjectUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     name: str | None = Field(default=None, min_length=1, max_length=200)
     description: str | None = None
     start_date: date | None = None
@@ -97,6 +101,8 @@ class ProjectResponse(BaseModel):
     deadline: date | None
     created_by: int
     created_at: datetime
+    status: Literal["active", "completed"]
+    completed_at: datetime | None
 
 
 class ProjectMemberCreate(BaseModel):
@@ -133,6 +139,7 @@ class TaskProjectResponse(BaseModel):
     id: int
     name: str
     created_by: int
+    status: Literal["active", "completed"]
 
 
 class TaskCreate(BaseModel):

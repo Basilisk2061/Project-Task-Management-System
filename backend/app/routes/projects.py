@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy import or_, select
 from sqlalchemy.exc import IntegrityError
@@ -7,6 +9,7 @@ from app.auth import get_current_user
 from app.database import get_db
 from app.document_storage import delete_project_storage
 from app.models import AssistantConversation, AssistantMessage, Comment, Document, Project, ProjectMember, Task, User
+from app.project_lifecycle import ensure_project_active
 from app.rag.vector_store import delete_project_index
 from app.schemas import (
     ProjectCreate,
@@ -111,6 +114,7 @@ def update_project(
     db: Session = Depends(get_db),
 ) -> Project:
     project = get_owned_project(project_id, current_user.id, db)
+    ensure_project_active(project)
     updates = data.model_dump(exclude_unset=True)
 
     updated_start_date = updates.get("start_date", project.start_date)
@@ -126,6 +130,36 @@ def update_project(
 
     db.commit()
     db.refresh(project)
+    return project
+
+
+@router.patch("/{project_id}/complete", response_model=ProjectResponse)
+def complete_project(
+    project_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> Project:
+    project = get_owned_project(project_id, current_user.id, db)
+    if project.status != "completed":
+        project.status = "completed"
+        project.completed_at = datetime.utcnow()
+        db.commit()
+        db.refresh(project)
+    return project
+
+
+@router.patch("/{project_id}/reopen", response_model=ProjectResponse)
+def reopen_project(
+    project_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> Project:
+    project = get_owned_project(project_id, current_user.id, db)
+    if project.status != "active" or project.completed_at is not None:
+        project.status = "active"
+        project.completed_at = None
+        db.commit()
+        db.refresh(project)
     return project
 
 
@@ -241,6 +275,7 @@ def add_project_member(
     db: Session = Depends(get_db),
 ) -> dict:
     project = get_owned_project(project_id, current_user.id, db)
+    ensure_project_active(project)
     user = db.get(User, data.user_id)
     if user is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
@@ -296,6 +331,7 @@ def remove_project_member(
     db: Session = Depends(get_db),
 ) -> Response:
     project = get_owned_project(project_id, current_user.id, db)
+    ensure_project_active(project)
     if user_id == project.created_by:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

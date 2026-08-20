@@ -14,6 +14,8 @@ function Projects() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [createModalOpen, setCreateModalOpen] = useState(false)
+  const [statusFilter, setStatusFilter] = useState('all')
+  const visibleProjects = statusFilter === 'all' ? projects : projects.filter((project) => project.status === statusFilter)
 
   useEffect(() => {
     let active = true
@@ -30,9 +32,10 @@ function Projects() {
     <div className="projects-page">
       <div className="page-toolbar">
         <p className="page-subtitle">Manage your projects and keep work organized.</p>
-        <button className="btn taskflow-button primary" type="button" onClick={() => setCreateModalOpen(true)}>
-          <PlusIcon /><span>New Project</span>
-        </button>
+        <div className="projects-toolbar-actions">
+          <label className="project-status-filter"><span>Status</span><select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}><option value="all">All</option><option value="active">Active</option><option value="completed">Completed</option></select></label>
+          <button className="btn taskflow-button primary" type="button" onClick={() => setCreateModalOpen(true)}><PlusIcon /><span>New Project</span></button>
+        </div>
       </div>
 
       {error && <div className="alert alert-danger" role="alert">{error}</div>}
@@ -46,12 +49,14 @@ function Projects() {
           <p>Create your first project to start organizing your work.</p>
           <button className="btn taskflow-button primary" type="button" onClick={() => setCreateModalOpen(true)}><PlusIcon /><span>New Project</span></button>
         </section>
+      ) : visibleProjects.length === 0 ? (
+        <section className="projects-empty-state compact"><FolderIcon /><h2>No {statusFilter} projects</h2><p>Try a different status filter.</p></section>
       ) : (
         <section className="project-grid" aria-label="Your projects">
-          {projects.map((project, index) => (
-            <article className="project-card" key={project.id} style={{ '--project-delay': `${Math.min(index, 6) * 40}ms` }}>
+          {visibleProjects.map((project, index) => (
+            <article className={`project-card${project.status === 'completed' ? ' completed' : ''}`} key={project.id} style={{ '--project-delay': `${Math.min(index, 6) * 40}ms` }}>
               <div className="project-card-body">
-                <div className="project-card-title"><h2>{project.name}</h2><span>{project.created_by === user.id ? 'Owner' : 'Member'}</span></div>
+                <div className="project-card-title"><h2>{project.name}</h2><div className="project-card-badges"><span className={`project-status-badge ${project.status}`}>{project.status === 'completed' ? 'Completed' : 'Active'}</span><span>{project.created_by === user.id ? 'Owner' : 'Member'}</span></div></div>
                 <p>{project.description || 'No description provided.'}</p>
                 <dl className="project-card-dates">
                   <div><dt>Start</dt><dd>{formatDate(project.start_date)}</dd></div>

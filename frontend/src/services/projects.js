@@ -4,6 +4,8 @@ export const getProjects = () => api.get('/api/projects').then((response) => res
 export const getProject = (id) => api.get(`/api/projects/${id}`).then((response) => response.data)
 export const createProject = (data) => api.post('/api/projects', data).then((response) => response.data)
 export const updateProject = (id, data) => api.put(`/api/projects/${id}`, data).then((response) => response.data)
+export const completeProject = (id) => api.patch(`/api/projects/${id}/complete`).then((response) => response.data)
+export const reopenProject = (id) => api.patch(`/api/projects/${id}/reopen`).then((response) => response.data)
 export const deleteProject = (id) => api.delete(`/api/projects/${id}`)
 export const getProjectMembers = (id) => api.get(`/api/projects/${id}/members`).then((response) => response.data)
 export const searchUsers = (projectId, query = '') => api.get(`/api/projects/${projectId}/users/search`, {

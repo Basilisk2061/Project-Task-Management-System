@@ -7,12 +7,21 @@ LEGACY_ASSISTANT_CONVERSATION_TITLE = "Previous Project Assistant Chat"
 
 
 def apply_additive_schema_updates(engine: Engine) -> None:
-    """Add Phase 12 columns to existing SQLite databases without replacing data."""
+    """Apply idempotent, additive SQLite schema updates without replacing data."""
     if engine.dialect.name != "sqlite":
         return
 
     with engine.begin() as connection:
         inspector = inspect(connection)
+        project_columns = {column["name"] for column in inspector.get_columns("projects")}
+        if "status" not in project_columns:
+            connection.execute(text(
+                "ALTER TABLE projects ADD COLUMN status VARCHAR "
+                "NOT NULL DEFAULT 'active'"
+            ))
+        if "completed_at" not in project_columns:
+            connection.execute(text("ALTER TABLE projects ADD COLUMN completed_at DATETIME"))
+
         user_columns = {column["name"] for column in inspector.get_columns("users")}
         if "professional_role" not in user_columns:
             connection.execute(text("ALTER TABLE users ADD COLUMN professional_role VARCHAR"))

@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from app.auth import get_current_user
 from app.database import get_db
 from app.models import Comment, Project, ProjectMember, Task, User
+from app.project_lifecycle import ensure_project_active
 from app.routes.projects import get_accessible_project
 from app.schemas import TaskCreate, TaskResponse, TaskStatusUpdate, TaskUpdate
 
@@ -55,6 +56,7 @@ def create_task(
     db: Session = Depends(get_db),
 ) -> Task:
     project = get_accessible_project(project_id, current_user.id, db)
+    ensure_project_active(project)
     validate_assignee(project, data.assigned_to, db)
     task = Task(
         project_id=project.id,
@@ -97,6 +99,7 @@ def update_task(
     db: Session = Depends(get_db),
 ) -> Task:
     task = get_accessible_task(task_id, current_user.id, db)
+    ensure_project_active(task.project)
     if task.project.created_by != current_user.id and task.created_by != current_user.id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to edit this task")
     updates = data.model_dump(exclude_unset=True)
@@ -117,6 +120,7 @@ def update_task_status(
     db: Session = Depends(get_db),
 ) -> Task:
     task = get_accessible_task(task_id, current_user.id, db)
+    ensure_project_active(task.project)
     allowed = (
         task.project.created_by == current_user.id
         or task.created_by == current_user.id
@@ -137,6 +141,7 @@ def delete_task(
     db: Session = Depends(get_db),
 ) -> Response:
     task = get_accessible_task(task_id, current_user.id, db)
+    ensure_project_active(task.project)
     if task.project.created_by != current_user.id and task.created_by != current_user.id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to delete this task")
     db.query(Comment).filter(Comment.task_id == task.id).delete(synchronize_session=False)

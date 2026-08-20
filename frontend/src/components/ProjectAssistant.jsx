@@ -50,6 +50,7 @@ function ProjectAssistant({
   documentsLoading,
   documentRevision,
   onOpenDocument,
+  projectCompleted = false,
 }) {
   const { showToast } = useToast()
   const [assistantStatus, setAssistantStatus] = useState('checking')
@@ -526,7 +527,14 @@ function ProjectAssistant({
           <div className="assistant-history-stack">
             <div className="assistant-empty-state">
               <strong>No project documents available.</strong>
-              <span>Upload a PDF to use the Project Assistant.</span>
+              <span>{projectCompleted ? 'Reopen the project to upload a PDF and prepare the Assistant.' : 'Upload a PDF to use the Project Assistant.'}</span>
+            </div>
+            {(messages.length > 0 || historyLoading) && renderConversation(false)}
+          </div>
+        ) : projectCompleted && (effectiveStatus === 'missing' || effectiveStatus === 'stale' || effectiveStatus === 'error') ? (
+          <div className="assistant-history-stack">
+            <div className="assistant-prepare-state assistant-completed-lock">
+              <div><strong>The Assistant cannot be prepared while this project is completed.</strong><span>Reopen the project to build or update its document index. Existing conversations remain available.</span></div>
             </div>
             {(messages.length > 0 || historyLoading) && renderConversation(false)}
           </div>

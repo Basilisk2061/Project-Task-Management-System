@@ -12,7 +12,7 @@ const statusLabels = {
   completed: 'Completed',
 }
 
-function TaskDetailsModal({ isOpen, task, user, onClose, onEdit }) {
+function TaskDetailsModal({ isOpen, task, user, onClose, onEdit, readOnly = false }) {
   const [comments, setComments] = useState([])
   const [content, setContent] = useState('')
   const [loadingComments, setLoadingComments] = useState(false)
@@ -73,7 +73,8 @@ function TaskDetailsModal({ isOpen, task, user, onClose, onEdit }) {
 
   if (!isOpen || !task) return null
 
-  const canEdit = Boolean(onEdit) && (task.project.created_by === user.id || task.created_by === user.id)
+  const taskReadOnly = readOnly || task.project.status === 'completed'
+  const canEdit = !taskReadOnly && Boolean(onEdit) && (task.project.created_by === user.id || task.created_by === user.id)
 
   const postComment = async (event) => {
     event.preventDefault()
@@ -139,7 +140,7 @@ function TaskDetailsModal({ isOpen, task, user, onClose, onEdit }) {
             ) : (
               <div className="comment-list">
                 {comments.map((comment) => {
-                  const canDelete = comment.author.id === user.id || task.project.created_by === user.id
+                  const canDelete = !taskReadOnly && (comment.author.id === user.id || task.project.created_by === user.id)
                   return (
                     <article className={`task-comment${removingCommentId === comment.id ? ' removing' : ''}`} key={comment.id}>
                       <header>
@@ -157,11 +158,13 @@ function TaskDetailsModal({ isOpen, task, user, onClose, onEdit }) {
               </div>
             )}
 
-            <form className="comment-form" onSubmit={postComment}>
+            {taskReadOnly ? (
+              <p className="completed-read-only-note">Comments are read-only because this project is completed.</p>
+            ) : <form className="comment-form" onSubmit={postComment}>
               <label className="form-label" htmlFor="task-comment-content">Add a comment</label>
               <textarea className="form-control" id="task-comment-content" rows="3" maxLength="2000" placeholder="Write a comment..." value={content} onChange={(event) => setContent(event.target.value)} disabled={posting} />
               <div><span>{content.length}/2000</span><button className="btn taskflow-button primary" type="submit" disabled={posting || loadingComments}>{posting && <span className="button-spinner" aria-hidden="true" />}{posting ? 'Posting...' : 'Post Comment'}</button></div>
-            </form>
+            </form>}
           </section>
         </div>
       </section>

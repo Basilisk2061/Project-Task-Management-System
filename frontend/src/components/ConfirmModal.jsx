@@ -12,6 +12,7 @@ function ConfirmModal({
   confirmLabel = 'Delete Project',
   loadingLabel = 'Deleting...',
   fallbackError = 'Unable to delete project.',
+  confirmButtonClass = 'danger',
   onClose,
   onConfirm,
   onConfirmed,
@@ -39,8 +40,8 @@ function ConfirmModal({
     return () => { document.body.style.overflow = previousOverflow }
   }, [isOpen])
 
-  const finishClose = (afterClose) => {
-    if (deleting || closing) return
+  const finishClose = (afterClose, confirmed = false) => {
+    if ((!confirmed && deleting) || closing) return
     setClosing(true)
     closeTimer.current = window.setTimeout(() => {
       afterClose?.()
@@ -54,9 +55,9 @@ function ConfirmModal({
     setDeleting(true)
     setError('')
     try {
-      await onConfirm()
+      const result = await onConfirm()
       setDeleting(false)
-      finishClose(onConfirmed)
+      finishClose(() => onConfirmed?.(result), true)
     } catch (requestError) {
       const message = getProjectError(requestError, fallbackError)
       setError(message)
@@ -80,7 +81,7 @@ function ConfirmModal({
         {error && <div className="alert alert-danger py-2" role="alert">{error}</div>}
         <div className="modal-actions">
           <button className="btn btn-light taskflow-button" type="button" onClick={() => finishClose()} disabled={deleting}>Cancel</button>
-          <button className="btn taskflow-button danger" type="button" onClick={confirmDelete} disabled={deleting}>
+          <button className={`btn taskflow-button ${confirmButtonClass}`} type="button" onClick={confirmDelete} disabled={deleting}>
             {deleting && <span className="button-spinner" aria-hidden="true" />}
             {deleting ? loadingLabel : confirmLabel}
           </button>

@@ -8,6 +8,7 @@ from app.auth import get_current_user
 from app.database import get_db
 from app.migrations import LEGACY_ASSISTANT_CONVERSATION_TITLE
 from app.models import AssistantConversation, AssistantMessage, Document, User
+from app.project_lifecycle import ensure_project_active
 from app.rag.conversation import (
     build_contextualized_retrieval_query,
     conversation_as_prompt_messages,
@@ -250,6 +251,7 @@ def index_project_documents(
     db: Session = Depends(get_db),
 ) -> dict:
     project = get_accessible_project(project_id, current_user.id, db)
+    ensure_project_active(project)
     documents = get_project_documents(project.id, db)
     try:
         return build_project_index(project.id, documents)

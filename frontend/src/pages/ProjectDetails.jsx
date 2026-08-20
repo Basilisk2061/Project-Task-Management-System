@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useOutletContext, useParams } from 'react-router-dom'
-import { EditIcon, FileIcon, PlusIcon, TrashIcon } from '../components/AppIcons.jsx'
+import { CheckCircleIcon, EditIcon, FileIcon, PlusIcon, TrashIcon } from '../components/AppIcons.jsx'
 import AddMemberModal from '../components/AddMemberModal.jsx'
 import ConfirmModal from '../components/ConfirmModal.jsx'
 import DocumentUploadModal from '../components/DocumentUploadModal.jsx'
@@ -14,10 +14,12 @@ import TaskDetailsModal from '../components/TaskDetailsModal.jsx'
 import TaskFormModal from '../components/TaskFormModal.jsx'
 import {
   deleteProject,
+  completeProject,
   getProject,
   getProjectError,
   getProjectMembers,
   removeProjectMember,
+  reopenProject,
   updateProject,
 } from '../services/projects.js'
 import { formatCreatedDate, formatDate } from '../utils/date.js'
@@ -37,6 +39,8 @@ function ProjectDetails() {
   const [error, setError] = useState('')
   const [editOpen, setEditOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
+  const [completeOpen, setCompleteOpen] = useState(false)
+  const [reopenOpen, setReopenOpen] = useState(false)
   const [addMemberOpen, setAddMemberOpen] = useState(false)
   const [memberToRemove, setMemberToRemove] = useState(null)
   const [removingUserId, setRemovingUserId] = useState(null)
@@ -109,6 +113,8 @@ function ProjectDetails() {
   }
 
   const isOwner = project.created_by === user.id
+  const isCompleted = project.status === 'completed'
+  const incompleteTaskCount = tasks.filter((task) => task.status !== 'completed').length
 
   const finishMemberRemoval = (member) => {
     showToast(`${member.name} removed from the project.`)
@@ -201,9 +207,12 @@ function ProjectDetails() {
         <div className="project-details-main">
       <section className="project-details-card">
         <div className="project-details-heading">
-          <div><h2>{project.name}</h2><p>{project.description || 'No description provided.'}</p></div>
+          <div><div className="project-title-status"><h2>{project.name}</h2><span className={`project-status-badge ${project.status}`}>{isCompleted ? 'Completed' : 'Active'}</span></div><p>{project.description || 'No description provided.'}</p></div>
           {isOwner && <div className="project-actions">
-            <button className="btn taskflow-button secondary" type="button" onClick={() => setEditOpen(true)}><EditIcon /><span>Edit Project</span></button>
+            {!isCompleted ? <>
+              <button className="btn taskflow-button secondary" type="button" onClick={() => setEditOpen(true)}><EditIcon /><span>Edit Project</span></button>
+              <button className="btn taskflow-button secondary" type="button" onClick={() => setCompleteOpen(true)}><CheckCircleIcon /><span>Complete Project</span></button>
+            </> : <button className="btn taskflow-button secondary" type="button" onClick={() => setReopenOpen(true)}>Reopen Project</button>}
             <button className="btn taskflow-button danger-outline" type="button" onClick={() => setDeleteOpen(true)}><TrashIcon /><span>Delete Project</span></button>
           </div>}
         </div>
@@ -213,6 +222,8 @@ function ProjectDetails() {
           <div><dt>Created Date</dt><dd>{formatCreatedDate(project.created_at)}</dd></div>
         </dl>
       </section>
+
+      {isCompleted && <div className="completed-project-notice" role="status"><CheckCircleIcon /><div><strong>Project completed</strong><span>This project was completed on {formatCreatedDate(project.completed_at)}. Its tasks, documents, comments, and project history remain available for reference.{isOwner ? ' Reopen the project to make changes.' : ''}</span></div></div>}
 
       <section className="project-progress-card" aria-labelledby="project-progress-title">
         <div className="project-progress-heading">
@@ -230,7 +241,7 @@ function ProjectDetails() {
       <section className="members-card">
         <header className="members-header">
           <div><h2>Members</h2><p>People with access to this project.</p></div>
-          {isOwner && <button className="btn taskflow-button primary" type="button" onClick={() => setAddMemberOpen(true)}><PlusIcon /><span>Add Member</span></button>}
+          {isOwner && !isCompleted && <button className="btn taskflow-button primary" type="button" onClick={() => setAddMemberOpen(true)}><PlusIcon /><span>Add Member</span></button>}
         </header>
         <div className="members-list">
           {members.map((member, index) => (
@@ -238,7 +249,7 @@ function ProjectDetails() {
               key={member.user_id} style={{ '--member-delay': `${Math.min(index, 6) * 35}ms` }}>
               <div className="member-identity"><strong>{member.name}</strong><span className="member-professional-role">{member.professional_role || PROFESSIONAL_ROLE_FALLBACK}</span><span>{member.email}</span></div>
               <span className="member-role">{member.role}</span>
-              {isOwner && member.role === 'Member' ? (
+              {isOwner && !isCompleted && member.role === 'Member' ? (
                 <button className="member-remove-button" type="button" onClick={() => setMemberToRemove(member)}>Remove</button>
               ) : <span className="member-action-space" />}
             </div>
@@ -249,10 +260,11 @@ function ProjectDetails() {
       <section className="tasks-section">
         <header className="tasks-header">
           <div><h2>Tasks</h2><p>Track work across each project status.</p></div>
-          <button className="btn taskflow-button primary" type="button" onClick={() => { setSelectedTask(null); setTaskModalOpen(true) }}><PlusIcon /><span>New Task</span></button>
+          {!isCompleted && <button className="btn taskflow-button primary" type="button" onClick={() => { setSelectedTask(null); setTaskModalOpen(true) }}><PlusIcon /><span>New Task</span></button>}
         </header>
         {taskError && <div className="alert alert-danger mx-3 mt-3" role="alert">{taskError}</div>}
         <TaskBoard tasks={tasks} user={user} savingStatusId={savingStatusId}
+          readOnly={isCompleted}
           taskMotion={taskMotion}
           onStatusChange={changeTaskStatus}
           onView={setDetailsTask}
@@ -263,7 +275,7 @@ function ProjectDetails() {
       <section className="documents-card">
         <header className="documents-header">
           <div><h2>Documents</h2><p>Project PDFs shared with the team.</p></div>
-          <button className="btn taskflow-button primary" type="button" onClick={() => setDocumentUploadOpen(true)}><PlusIcon /><span>Upload PDF</span></button>
+          {!isCompleted && <button className="btn taskflow-button primary" type="button" onClick={() => setDocumentUploadOpen(true)}><PlusIcon /><span>Upload PDF</span></button>}
         </header>
         {documentError && <div className="alert alert-danger mx-3 mt-3" role="alert">{documentError}</div>}
         {documentsLoading ? (
@@ -273,7 +285,7 @@ function ProjectDetails() {
         ) : (
           <div className="documents-list">
             {documents.map((document, index) => {
-              const canDeleteDocument = isOwner || document.uploaded_by === user.id
+              const canDeleteDocument = !isCompleted && (isOwner || document.uploaded_by === user.id)
               const opening = documentAction === `open-${document.id}`
               const downloading = documentAction === `download-${document.id}`
               return (
@@ -301,6 +313,7 @@ function ProjectDetails() {
             documents={documents}
             documentsLoading={documentsLoading}
             documentRevision={assistantDocumentRevision}
+            projectCompleted={isCompleted}
             onOpenDocument={openDocument}
           />
         </aside>
@@ -311,6 +324,20 @@ function ProjectDetails() {
       <ConfirmModal isOpen={deleteOpen} projectName={project.name}
         onClose={() => setDeleteOpen(false)} onConfirm={() => deleteProject(project.id)}
         onConfirmed={() => { showToast('Project deleted.'); navigate('/app/projects', { replace: true }) }} />
+      <ConfirmModal isOpen={completeOpen}
+        title="Complete project?"
+        message={incompleteTaskCount > 0 ? `${incompleteTaskCount} ${incompleteTaskCount === 1 ? 'task is' : 'tasks are'} still incomplete. Completing the project will make normal project operations read-only without changing any task statuses.` : 'This project will be marked as completed. Existing tasks, documents, comments, and Assistant conversations will remain available.'}
+        confirmLabel="Complete Project" loadingLabel="Completing..." fallbackError="Unable to complete project."
+        confirmButtonClass="primary"
+        onClose={() => setCompleteOpen(false)} onConfirm={() => completeProject(project.id)}
+        onConfirmed={(savedProject) => { setProject(savedProject); showToast('Project completed') }} />
+      <ConfirmModal isOpen={reopenOpen}
+        title="Reopen project?"
+        message="Editing and other project changes will become available again."
+        confirmLabel="Reopen Project" loadingLabel="Reopening..." fallbackError="Unable to reopen project."
+        confirmButtonClass="primary"
+        onClose={() => setReopenOpen(false)} onConfirm={() => reopenProject(project.id)}
+        onConfirmed={(savedProject) => { setProject(savedProject); showToast('Project reopened') }} />
       <AddMemberModal isOpen={addMemberOpen} projectId={project.id}
         onClose={() => setAddMemberOpen(false)}
         onMemberAdded={(member) => { setMembers((current) => [...current, member]); showToast(`${member.name} added to the project.`) }} />
@@ -332,6 +359,7 @@ function ProjectDetails() {
           showToast(editing ? 'Task updated.' : 'Task created.')
         }} />
       <TaskDetailsModal isOpen={Boolean(detailsTask)} task={detailsTask} user={user}
+        readOnly={isCompleted}
         onClose={() => setDetailsTask(null)}
         onEdit={(task) => { setSelectedTask(task); setTaskModalOpen(true) }} />
       <DocumentUploadModal isOpen={documentUploadOpen} projectId={project.id}

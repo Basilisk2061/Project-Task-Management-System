@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from app.auth import get_current_user
 from app.database import get_db
 from app.models import Comment, User
+from app.project_lifecycle import ensure_project_active
 from app.routes.tasks import get_accessible_task
 from app.schemas import CommentCreate, CommentResponse
 
@@ -41,6 +42,7 @@ def create_task_comment(
     db: Session = Depends(get_db),
 ) -> Comment:
     task = get_accessible_task(task_id, current_user.id, db)
+    ensure_project_active(task.project)
     comment = Comment(
         task_id=task.id,
         user_id=current_user.id,
@@ -66,6 +68,7 @@ def delete_comment(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Comment not found")
 
     task = get_accessible_task(comment.task_id, current_user.id, db)
+    ensure_project_active(task.project)
     if comment.user_id != current_user.id and task.project.created_by != current_user.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,

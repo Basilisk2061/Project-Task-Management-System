@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react'
-import { DragHandleIcon } from './AppIcons.jsx'
+import { Link } from 'react-router-dom'
+import { DragHandleIcon, FolderIcon } from './AppIcons.jsx'
 import { formatTaskDueDate } from '../utils/date.js'
 
 const columns = [
@@ -15,7 +16,7 @@ function getLocalDateValue() {
   return `${date.getFullYear()}-${month}-${day}`
 }
 
-function TaskBoard({ tasks, user, onEdit, onDelete, onStatusChange, onView, savingStatusId, showProject = false, taskMotion = null }) {
+function TaskBoard({ tasks, user, onEdit, onDelete, onStatusChange, onView, savingStatusId, showProject = false, taskMotion = null, readOnly = false }) {
   const today = getLocalDateValue()
   const [draggedTaskId, setDraggedTaskId] = useState(null)
   const [dragOverStatus, setDragOverStatus] = useState(null)
@@ -89,8 +90,9 @@ function TaskBoard({ tasks, user, onEdit, onDelete, onStatusChange, onView, savi
               {dragOverStatus === column.status && <div className="task-drop-placeholder" aria-hidden="true">Drop task here</div>}
               {columnTasks.length === 0 ? (dragOverStatus === column.status ? null : <p className="task-column-empty">No tasks</p>) : columnTasks.map((task, index) => {
                 const isOwner = task.project.created_by === user.id
-                const canEdit = isOwner || task.created_by === user.id
-                const canStatus = isOwner || task.created_by === user.id || task.assigned_to === user.id
+                const taskReadOnly = readOnly || task.project.status === 'completed'
+                const canEdit = !taskReadOnly && (isOwner || task.created_by === user.id)
+                const canStatus = !taskReadOnly && (isOwner || task.created_by === user.id || task.assigned_to === user.id)
                 const incomplete = task.status !== 'completed'
                 const overdue = Boolean(task.due_date && task.due_date < today && incomplete)
                 const dueToday = Boolean(task.due_date && task.due_date === today && incomplete)
@@ -110,6 +112,18 @@ function TaskBoard({ tasks, user, onEdit, onDelete, onStatusChange, onView, savi
                     tabIndex={onView ? 0 : undefined}
                     aria-label={onView ? `View details for ${task.title}` : undefined}
                   >
+                    {showProject && (
+                      <Link
+                        className="task-project-context"
+                        to={`/app/projects/${task.project.id}`}
+                        draggable={false}
+                        onClick={(event) => event.stopPropagation()}
+                        onKeyDown={(event) => event.stopPropagation()}
+                      >
+                        <FolderIcon /><span>{task.project.name}</span>
+                      </Link>
+                    )}
+                    {taskReadOnly && showProject && <span className="task-project-completed-context">Completed project · Read-only</span>}
                     <div className="task-card-heading">
                       <h4>{task.title}</h4>
                       <div className="task-card-heading-actions">
@@ -130,7 +144,6 @@ function TaskBoard({ tasks, user, onEdit, onDelete, onStatusChange, onView, savi
                         )}
                       </div>
                     </div>
-                    {showProject && <p className="task-project-name">{task.project.name}</p>}
                     <div className="task-meta">
                       <span>{task.assignee ? `Assigned to ${task.assignee.name}` : 'Unassigned'}</span>
                       <span>{task.creator ? `Created by ${task.creator.name}` : 'Creator unavailable'}</span>

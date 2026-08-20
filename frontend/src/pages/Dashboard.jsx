@@ -59,6 +59,7 @@ function Dashboard() {
     .sort((first, second) => first.due_date.localeCompare(second.due_date))
     .slice(0, 5)
   const activeTasks = pendingTasks
+    .filter((task) => task.project.status === 'active')
     .sort((first, second) => {
       if (first.status !== second.status) return first.status === 'in_progress' ? -1 : 1
       return (first.due_date || '9999-12-31').localeCompare(second.due_date || '9999-12-31')
@@ -97,7 +98,7 @@ function Dashboard() {
                   <Link key={project.id} to={`/app/projects/${project.id}`} style={{ '--row-delay': `${Math.min(index, 5) * 40 + 120}ms` }}>
                     <span className="dashboard-row-icon"><FolderIcon /></span>
                     <span className="dashboard-project-main">
-                      <span className="dashboard-row-title"><strong>{project.name}</strong><small>{project.created_by === user.id ? 'Owner' : 'Member'}</small></span>
+                      <span className="dashboard-row-title"><strong>{project.name}</strong><span className="dashboard-project-badges"><small className={`project-status-badge ${project.status}`}>{project.status === 'completed' ? 'Completed' : 'Active'}</small><small>{project.created_by === user.id ? 'Owner' : 'Member'}</small></span></span>
                       <span className="dashboard-row-description">{project.description || 'No description provided.'}</span>
                     </span>
                     <span className="dashboard-project-meta">

@@ -50,6 +50,9 @@ class User(Base):
 
 class Project(Base):
     __tablename__ = "projects"
+    __table_args__ = (
+        CheckConstraint("status IN ('active', 'completed')", name="ck_project_status"),
+    )
 
     id = Column(Integer, primary_key=True)
     name = Column(String, nullable=False)
@@ -58,6 +61,8 @@ class Project(Base):
     deadline = Column(Date, nullable=True)
     created_by = Column(Integer, ForeignKey("users.id"), nullable=False)
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+    status = Column(String, nullable=False, default="active", server_default="active")
+    completed_at = Column(DateTime, nullable=True)
 
     creator = relationship("User", back_populates="created_projects")
     members = relationship("ProjectMember", back_populates="project")

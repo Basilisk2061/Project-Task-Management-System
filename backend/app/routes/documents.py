@@ -16,6 +16,7 @@ from app.document_storage import (
     remove_empty_project_directory,
 )
 from app.models import Document, User
+from app.project_lifecycle import ensure_project_active
 from app.routes.projects import get_accessible_project
 from app.schemas import DocumentResponse
 
@@ -77,6 +78,7 @@ async def upload_project_document(
     db: Session = Depends(get_db),
 ) -> Document:
     project = get_accessible_project(project_id, current_user.id, db)
+    ensure_project_active(project)
     cleaned_document_type = document_type.strip()
     if cleaned_document_type not in DOCUMENT_TYPES:
         raise HTTPException(
@@ -182,6 +184,7 @@ def delete_document(
     db: Session = Depends(get_db),
 ) -> Response:
     document = get_accessible_document(document_id, current_user.id, db)
+    ensure_project_active(document.project)
     if document.uploaded_by != current_user.id and document.project.created_by != current_user.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
