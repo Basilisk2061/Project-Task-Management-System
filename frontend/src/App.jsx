@@ -1,43 +1,32 @@
-import { useEffect, useState } from 'react'
-import axios from 'axios'
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import AppLayout from './components/AppLayout.jsx'
+import Dashboard from './pages/Dashboard.jsx'
+import Login from './pages/Login.jsx'
+import MyTasks from './pages/MyTasks.jsx'
+import Projects from './pages/Projects.jsx'
+import Register from './pages/Register.jsx'
+import { getToken } from './services/api.js'
 
-const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'
+function ProtectedRoute({ children }) {
+  return getToken() ? children : <Navigate to="/login" replace />
+}
 
 function App() {
-  const [backendStatus, setBackendStatus] = useState('Checking...')
-  const [statusClass, setStatusClass] = useState('text-secondary')
-
-  useEffect(() => {
-    axios
-      .get(`${apiBaseUrl}/api/health`)
-      .then((response) => {
-        if (response.data.status === 'ok') {
-          setBackendStatus('Connected')
-          setStatusClass('text-success')
-        } else {
-          setBackendStatus('Unexpected response')
-          setStatusClass('text-warning')
-        }
-      })
-      .catch(() => {
-        setBackendStatus('Disconnected')
-        setStatusClass('text-danger')
-      })
-  }, [])
-
   return (
-    <main className="container py-5">
-      <section className="app-panel border bg-white p-4">
-        <h1 className="h3 mb-2">TaskFlow</h1>
-        <p className="text-secondary mb-4">Project and Task Management System</p>
-        <div className="border-top pt-3">
-          <span className="fw-semibold">Backend Status: </span>
-          <span className={statusClass}>{backendStatus}</span>
-        </div>
-      </section>
-    </main>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/app" element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
+          <Route index element={<Navigate to="dashboard" replace />} />
+          <Route path="dashboard" element={<Dashboard />} />
+          <Route path="projects" element={<Projects />} />
+          <Route path="tasks" element={<MyTasks />} />
+        </Route>
+        <Route path="*" element={<Navigate to={getToken() ? '/app/dashboard' : '/login'} replace />} />
+      </Routes>
+    </BrowserRouter>
   )
 }
 
 export default App
-

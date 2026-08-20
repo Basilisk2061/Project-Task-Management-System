@@ -12,6 +12,10 @@ models backed by SQLite.
 The database contains users, projects, project members, tasks, comments, and
 document metadata. Tables are created automatically when FastAPI starts.
 
+Phase 3 adds user registration, password hashing, JWT login, and a protected
+current-user endpoint. The frontend provides simple register, login, and
+authenticated placeholder pages.
+
 ## Backend setup
 
 From the project root:
