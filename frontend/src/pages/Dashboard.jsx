@@ -2,16 +2,18 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { getProjectError, getProjects } from '../services/projects.js'
 import { formatDate } from '../utils/date.js'
+import { getMyTasks } from '../services/tasks.js'
 
 function Dashboard() {
   const [projects, setProjects] = useState([])
+  const [tasks, setTasks] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
   useEffect(() => {
     let active = true
-    getProjects()
-      .then((data) => { if (active) setProjects(data) })
+    Promise.all([getProjects(), getMyTasks()])
+      .then(([projectData, taskData]) => { if (active) { setProjects(projectData); setTasks(taskData) } })
       .catch((requestError) => {
         if (active) setError(getProjectError(requestError, 'Unable to load project data.'))
       })
@@ -21,10 +23,15 @@ function Dashboard() {
 
   const summaries = [
     { label: 'My Projects', value: loading ? '—' : projects.length },
-    { label: 'My Tasks', value: 0 },
-    { label: 'Completed', value: 0 },
-    { label: 'Pending', value: 0 },
+    { label: 'My Tasks', value: loading ? '—' : tasks.length },
+    { label: 'Completed', value: loading ? '—' : tasks.filter((task) => task.status === 'completed').length },
+    { label: 'Pending', value: loading ? '—' : tasks.filter((task) => task.status !== 'completed').length },
   ]
+
+  const upcomingTasks = tasks
+    .filter((task) => task.due_date && task.status !== 'completed')
+    .sort((first, second) => first.due_date.localeCompare(second.due_date))
+    .slice(0, 5)
 
   return (
     <div className="dashboard-page">
@@ -52,7 +59,20 @@ function Dashboard() {
         </section>
         <section className="dashboard-panel">
           <h2>Upcoming Tasks</h2>
-          <div className="empty-state"><strong>No upcoming tasks.</strong><p>Your assigned tasks with upcoming deadlines will appear here.</p></div>
+          {loading ? (
+            <div className="empty-state"><span className="loading-spinner" aria-hidden="true" /><p>Loading tasks...</p></div>
+          ) : upcomingTasks.length === 0 ? (
+            <div className="empty-state"><strong>No upcoming tasks.</strong><p>Your assigned tasks with upcoming deadlines will appear here.</p></div>
+          ) : (
+            <div className="dashboard-task-list">
+              {upcomingTasks.map((task) => (
+                <Link key={task.id} to={`/app/projects/${task.project_id}`}>
+                  <span><strong>{task.title}</strong><small>{task.project.name}</small></span>
+                  <small className={task.due_date < new Date().toISOString().slice(0, 10) ? 'overdue' : ''}>{task.due_date < new Date().toISOString().slice(0, 10) ? 'Overdue' : `Due ${formatDate(task.due_date, { compact: true })}`}</small>
+                </Link>
+              ))}
+            </div>
+          )}
         </section>
       </div>
     </div>

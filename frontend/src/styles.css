@@ -780,6 +780,29 @@ body {
   font-weight: 500;
 }
 
+.dashboard-task-list {
+  padding: 0.35rem 1.25rem;
+}
+
+.dashboard-task-list > a {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid #e8e9ea;
+  color: #34383c;
+  text-decoration: none;
+  transition: color 170ms ease, transform 170ms ease;
+}
+
+.dashboard-task-list > a:last-child { border-bottom: 0; }
+.dashboard-task-list > a:hover { color: #000; transform: translateX(2px); }
+.dashboard-task-list > a > span { display: flex; min-width: 0; flex-direction: column; }
+.dashboard-task-list strong { overflow: hidden; font-size: 0.825rem; text-overflow: ellipsis; white-space: nowrap; }
+.dashboard-task-list small { color: #7d8389; font-size: 0.72rem; font-weight: 500; }
+.dashboard-task-list .overdue { color: #a13939; font-weight: 650; }
+
 .project-details-page {
   max-width: 980px;
 }
@@ -839,6 +862,27 @@ body {
 .project-details-list dd {
   font-size: 0.875rem;
 }
+
+.project-progress-card {
+  margin-top: 1rem;
+  padding: 1rem 1.25rem;
+  border: 1px solid #dcdee1;
+  border-radius: 0.45rem;
+  background-color: #fff;
+}
+
+.project-progress-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.project-progress-heading h2 { margin: 0; color: #292d31; font-size: 0.9rem; font-weight: 700; }
+.project-progress-heading p { margin: 0.2rem 0 0; color: #7a8086; font-size: 0.72rem; }
+.project-progress-heading strong { color: #34383c; font-size: 0.82rem; font-weight: 700; }
+.project-progress-track { height: 6px; margin-top: 0.75rem; overflow: hidden; border-radius: 999px; background-color: #e7e9eb; }
+.project-progress-track span { display: block; height: 100%; border-radius: inherit; background-color: #34383c; transition: width 700ms var(--motion-ease); }
 
 /* Project members */
 .members-card {
@@ -1024,6 +1068,154 @@ body {
   font-size: 0.73rem;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* Task workflow */
+.tasks-section {
+  margin-top: 1rem;
+  border: 1px solid #dcdee1;
+  border-radius: 0.45rem;
+  background-color: #fff;
+}
+
+.tasks-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.15rem 1.5rem;
+  border-bottom: 1px solid #e3e5e7;
+}
+
+.tasks-header h2 { margin: 0; color: #292d31; font-size: 1rem; font-weight: 700; }
+.tasks-header p { margin: 0.25rem 0 0; color: #7a8086; font-size: 0.78rem; }
+
+.task-board {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.8rem;
+  padding: 1rem;
+  background-color: #f7f8f9;
+}
+
+.task-column {
+  min-width: 0;
+  border: 1px solid #dfe1e3;
+  border-radius: 0.4rem;
+  background-color: #f1f2f3;
+  transition: border-color 180ms ease, background-color 180ms ease, box-shadow 180ms ease;
+}
+
+.task-column.drop-target { border-color: #8f959b; background-color: #eceeef; box-shadow: inset 0 0 0 1px rgba(52, 56, 60, 0.08); }
+
+.task-column > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 0.85rem;
+  border-bottom: 1px solid #dfe1e3;
+}
+
+.task-column h3 { margin: 0; color: #5e656c; font-size: 0.7rem; font-weight: 750; letter-spacing: 0.065em; text-transform: uppercase; }
+.task-column > header span { color: #777e85; font-size: 0.72rem; font-weight: 650; }
+.task-column-content { min-height: 130px; padding: 0.65rem; }
+.task-column-empty { margin: 1.7rem 0; color: #8a9096; font-size: 0.78rem; text-align: center; }
+
+.task-card {
+  margin-bottom: 0.6rem;
+  padding: 0.85rem;
+  border: 1px solid #d8dbde;
+  border-radius: 0.35rem;
+  background-color: #fff;
+  opacity: 1;
+  animation: task-card-enter 260ms var(--motion-ease) backwards;
+  animation-delay: var(--task-delay);
+  transition: border-color 210ms ease, box-shadow 210ms ease, transform 210ms ease, opacity 170ms ease;
+}
+
+.task-card:last-child { margin-bottom: 0; }
+.task-card:hover { border-color: #c1c5c9; box-shadow: 0 5px 14px rgba(28, 34, 39, 0.07); transform: translateY(-2px); }
+.task-card.dragging { opacity: 0.42; transform: scale(0.99); }
+.task-card.dragging .task-drag-handle { cursor: grabbing; }
+.task-card-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 0.6rem; }
+.task-card h4 { margin: 0; color: #303438; font-size: 0.85rem; font-weight: 680; line-height: 1.4; }
+.task-card-heading-actions { display: flex; flex: 0 0 auto; align-items: center; gap: 0.3rem; }
+
+.task-drag-handle {
+  display: grid;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  border-radius: 0.25rem;
+  color: #8a9096;
+  cursor: grab;
+  user-select: none;
+  transition: color 150ms ease, background-color 150ms ease;
+}
+
+.task-drag-handle:hover { background-color: #f0f1f2; color: #454a4f; }
+.task-drag-handle:active { cursor: grabbing; }
+.task-drag-handle svg { width: 17px; height: 17px; pointer-events: none; }
+
+.task-drag-preview {
+  position: fixed;
+  z-index: 9999;
+  top: -10000px;
+  left: -10000px;
+  margin: 0;
+  opacity: 1;
+  pointer-events: none;
+  animation: none;
+  box-shadow: 0 12px 28px rgba(28, 34, 39, 0.18);
+  transform: scale(1.01);
+}
+
+.task-drag-preview:hover { transform: scale(1.01); }
+
+.priority-label {
+  flex: 0 0 auto;
+  padding: 0.14rem 0.32rem;
+  border: 1px solid #d4d7da;
+  border-radius: 0.2rem;
+  color: #676e75;
+  font-size: 0.58rem;
+  font-weight: 750;
+  letter-spacing: 0.045em;
+  text-transform: uppercase;
+}
+
+.priority-label.medium { border-color: #d8c58d; color: #836714; }
+.priority-label.high { border-color: #d7aaaa; color: #9a3030; }
+.task-project-name { margin: 0.35rem 0 0; color: #777e85; font-size: 0.72rem; }
+.task-meta { display: flex; flex-direction: column; gap: 0.2rem; margin-top: 0.75rem; color: #747b82; font-size: 0.7rem; }
+.task-meta .overdue { color: #a13939; font-weight: 650; }
+.task-meta .due-today { color: #9a6814; font-weight: 650; }
+
+.task-status-select {
+  width: 100%;
+  min-height: 32px;
+  margin-top: 0.7rem;
+  padding: 0.3rem 1.8rem 0.3rem 0.5rem;
+  border: 1px solid #d2d5d8;
+  border-radius: 0.3rem;
+  background-color: #fafafa;
+  color: #454a4f;
+  font-size: 0.72rem;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.task-status-select:focus { border-color: #555a5f; outline: 0; box-shadow: 0 0 0 0.15rem rgba(33, 37, 41, 0.1); }
+.task-card-actions { display: flex; justify-content: flex-end; gap: 0.65rem; margin-top: 0.65rem; padding-top: 0.55rem; border-top: 1px solid #eceeef; }
+.task-card-actions button { padding: 0; border: 0; background: transparent; color: #555c63; font-size: 0.7rem; font-weight: 650; transition: color 150ms ease; }
+.task-card-actions button:hover { color: #111; }
+.task-card-actions button.danger { color: #a13939; }
+.task-form-grid { display: grid; grid-template-columns: 0.8fr 1.2fr; gap: 1rem; }
+.taskflow-modal .form-select { border-color: #cfd3d7; border-radius: 0.35rem; font-size: 0.875rem; transition: border-color 170ms ease, box-shadow 170ms ease; }
+.taskflow-modal .form-select:focus { border-color: #454a4f; box-shadow: 0 0 0 0.2rem rgba(33, 37, 41, 0.11); }
+.my-tasks-page .task-board { padding: 0; background: transparent; }
+
+@keyframes task-card-enter {
+  from { opacity: 0; transform: translateY(7px); }
 }
 
 @keyframes member-enter {
@@ -1304,6 +1496,10 @@ body {
   .project-details-heading {
     flex-direction: column;
   }
+
+  .task-board {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 575.98px) {
@@ -1361,6 +1557,15 @@ body {
     flex-direction: column;
   }
 
+  .tasks-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .task-form-grid {
+    grid-template-columns: 1fr;
+  }
+
   .member-row {
     grid-template-columns: minmax(0, 1fr) auto;
     gap: 0.75rem;
@@ -1399,11 +1604,16 @@ body {
   .project-card,
   .member-row,
   .member-search-result,
+  .task-card,
   .modal-layer,
   .taskflow-modal,
   .loading-spinner,
   .button-spinner {
     animation: none;
+  }
+
+  .project-progress-track span {
+    transition: none;
   }
 
   .summary-card {

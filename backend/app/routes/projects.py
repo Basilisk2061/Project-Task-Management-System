@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.auth import get_current_user
 from app.database import get_db
-from app.models import Project, ProjectMember, User
+from app.models import Comment, Project, ProjectMember, Task, User
 from app.schemas import (
     ProjectCreate,
     ProjectMemberCreate,
@@ -134,6 +134,13 @@ def delete_project(
     db: Session = Depends(get_db),
 ) -> Response:
     project = get_owned_project(project_id, current_user.id, db)
+    task_ids = select(Task.id).where(Task.project_id == project.id)
+    db.query(Comment).filter(Comment.task_id.in_(task_ids)).delete(
+        synchronize_session=False
+    )
+    db.query(Task).filter(Task.project_id == project.id).delete(
+        synchronize_session=False
+    )
     db.query(ProjectMember).filter(ProjectMember.project_id == project.id).delete(
         synchronize_session=False
     )
@@ -291,6 +298,10 @@ def remove_project_member(
             detail="Project member not found",
         )
 
+    db.query(Task).filter(
+        Task.project_id == project.id,
+        Task.assigned_to == user_id,
+    ).update({Task.assigned_to: None}, synchronize_session=False)
     db.delete(membership)
     db.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)

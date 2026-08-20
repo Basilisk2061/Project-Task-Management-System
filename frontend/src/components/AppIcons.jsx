@@ -41,3 +41,7 @@ export function TrashIcon() {
 export function CloseIcon() {
   return <svg {...iconProps}><path d="m6 6 12 12M18 6 6 18" /></svg>
 }
+
+export function DragHandleIcon() {
+  return <svg {...iconProps}><circle cx="9" cy="7" r="1" fill="currentColor" stroke="none" /><circle cx="15" cy="7" r="1" fill="currentColor" stroke="none" /><circle cx="9" cy="12" r="1" fill="currentColor" stroke="none" /><circle cx="15" cy="12" r="1" fill="currentColor" stroke="none" /><circle cx="9" cy="17" r="1" fill="currentColor" stroke="none" /><circle cx="15" cy="17" r="1" fill="currentColor" stroke="none" /></svg>
+}
