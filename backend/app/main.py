@@ -17,6 +17,7 @@ from app.routes.tasks import router as tasks_router
 from app.schemas import TokenResponse, UserLogin, UserRegister, UserResponse
 
 
+# Initialize the application database schema before serving requests.
 Base.metadata.create_all(bind=engine)
 apply_additive_schema_updates(engine)
 
