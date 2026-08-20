@@ -15,7 +15,7 @@ function getLocalDateValue() {
   return `${date.getFullYear()}-${month}-${day}`
 }
 
-function TaskBoard({ tasks, user, onEdit, onDelete, onStatusChange, savingStatusId, showProject = false }) {
+function TaskBoard({ tasks, user, onEdit, onDelete, onStatusChange, onView, savingStatusId, showProject = false }) {
   const today = getLocalDateValue()
   const [draggedTaskId, setDraggedTaskId] = useState(null)
   const [dragOverStatus, setDragOverStatus] = useState(null)
@@ -101,7 +101,20 @@ function TaskBoard({ tasks, user, onEdit, onDelete, onStatusChange, savingStatus
                       ? `Due ${formatDate(task.due_date, { compact: true })}`
                       : 'No due date'
                 return (
-                  <article className={`task-card${draggedTaskId === task.id ? ' dragging' : ''}`} key={task.id} style={{ '--task-delay': `${Math.min(index, 6) * 35}ms` }}>
+                  <article
+                    className={`task-card${onView ? ' viewable' : ''}${draggedTaskId === task.id ? ' dragging' : ''}`}
+                    key={task.id}
+                    style={{ '--task-delay': `${Math.min(index, 6) * 35}ms` }}
+                    onClick={() => onView?.(task)}
+                    onKeyDown={(event) => {
+                      if (event.target === event.currentTarget && (event.key === 'Enter' || event.key === ' ')) {
+                        event.preventDefault()
+                        onView?.(task)
+                      }
+                    }}
+                    tabIndex={onView ? 0 : undefined}
+                    aria-label={onView ? `View details for ${task.title}` : undefined}
+                  >
                     <div className="task-card-heading">
                       <h4>{task.title}</h4>
                       <div className="task-card-heading-actions">
@@ -112,6 +125,7 @@ function TaskBoard({ tasks, user, onEdit, onDelete, onStatusChange, savingStatus
                             draggable={savingStatusId !== task.id}
                             onDragStart={(event) => beginDrag(event, task)}
                             onDragEnd={finishDrag}
+                            onClick={(event) => event.stopPropagation()}
                             role="button"
                             aria-label={`Drag ${task.title} to another status`}
                             title="Drag to change status"
@@ -127,8 +141,8 @@ function TaskBoard({ tasks, user, onEdit, onDelete, onStatusChange, savingStatus
                       <span>{task.creator ? `Created by ${task.creator.name}` : 'Creator unavailable'}</span>
                       <span className={overdue ? 'overdue' : dueToday ? 'due-today' : ''}>{dueLabel}</span>
                     </div>
-                    {canStatus && <select className="task-status-select" value={task.status} disabled={savingStatusId === task.id} onChange={(event) => onStatusChange(task, event.target.value)} aria-label={`Status for ${task.title}`}><option value="todo">To Do</option><option value="in_progress">In Progress</option><option value="completed">Completed</option></select>}
-                    {(canEdit && onEdit) && <div className="task-card-actions"><button type="button" onClick={() => onEdit(task)}>Edit</button><button className="danger" type="button" onClick={() => onDelete(task)}>Delete</button></div>}
+                    {canStatus && <select className="task-status-select" value={task.status} disabled={savingStatusId === task.id} onClick={(event) => event.stopPropagation()} onChange={(event) => onStatusChange(task, event.target.value)} aria-label={`Status for ${task.title}`}><option value="todo">To Do</option><option value="in_progress">In Progress</option><option value="completed">Completed</option></select>}
+                    {(canEdit && onEdit) && <div className="task-card-actions" onClick={(event) => event.stopPropagation()}><button type="button" onClick={() => onEdit(task)}>Edit</button><button className="danger" type="button" onClick={() => onDelete(task)}>Delete</button></div>}
                   </article>
                 )
               })}

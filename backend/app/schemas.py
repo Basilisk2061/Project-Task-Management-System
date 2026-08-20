@@ -181,3 +181,27 @@ class TaskResponse(BaseModel):
     project: TaskProjectResponse
     creator: TaskUserResponse
     assignee: TaskUserResponse | None
+
+
+class CommentCreate(BaseModel):
+    content: str = Field(min_length=1, max_length=2000)
+
+    @field_validator("content", mode="before")
+    @classmethod
+    def clean_comment_content(cls, value: str) -> str:
+        if not isinstance(value, str):
+            return value
+        cleaned_content = value.strip()
+        if not cleaned_content:
+            raise ValueError("Comment cannot be empty")
+        return cleaned_content
+
+
+class CommentResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    task_id: int
+    content: str
+    created_at: datetime
+    author: TaskUserResponse = Field(validation_alias="user")

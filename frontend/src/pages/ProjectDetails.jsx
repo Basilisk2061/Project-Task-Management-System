@@ -5,6 +5,7 @@ import AddMemberModal from '../components/AddMemberModal.jsx'
 import ConfirmModal from '../components/ConfirmModal.jsx'
 import ProjectFormModal from '../components/ProjectFormModal.jsx'
 import TaskBoard from '../components/TaskBoard.jsx'
+import TaskDetailsModal from '../components/TaskDetailsModal.jsx'
 import TaskFormModal from '../components/TaskFormModal.jsx'
 import {
   deleteProject,
@@ -34,6 +35,7 @@ function ProjectDetails() {
   const [taskModalOpen, setTaskModalOpen] = useState(false)
   const [selectedTask, setSelectedTask] = useState(null)
   const [taskToDelete, setTaskToDelete] = useState(null)
+  const [detailsTask, setDetailsTask] = useState(null)
   const [savingStatusId, setSavingStatusId] = useState(null)
   const [taskError, setTaskError] = useState('')
   const [displayProgress, setDisplayProgress] = useState(0)
@@ -153,6 +155,7 @@ function ProjectDetails() {
         {taskError && <div className="alert alert-danger mx-3 mt-3" role="alert">{taskError}</div>}
         <TaskBoard tasks={tasks} user={user} savingStatusId={savingStatusId}
           onStatusChange={changeTaskStatus}
+          onView={setDetailsTask}
           onEdit={(task) => { setSelectedTask(task); setTaskModalOpen(true) }}
           onDelete={setTaskToDelete} />
       </section>
@@ -178,6 +181,9 @@ function ProjectDetails() {
         task={selectedTask} members={members} onClose={() => { setTaskModalOpen(false); setSelectedTask(null) }}
         onSubmit={(data) => selectedTask ? updateTask(selectedTask.id, data) : createTask(project.id, data)}
         onSaved={(saved) => setTasks((current) => selectedTask ? current.map((task) => task.id === saved.id ? saved : task) : [saved, ...current])} />
+      <TaskDetailsModal isOpen={Boolean(detailsTask)} task={detailsTask} user={user}
+        onClose={() => setDetailsTask(null)}
+        onEdit={(task) => { setSelectedTask(task); setTaskModalOpen(true) }} />
       <ConfirmModal isOpen={Boolean(taskToDelete)} title="Delete task?"
         message={taskToDelete ? `This will permanently delete “${taskToDelete.title}”.` : ''}
         confirmLabel="Delete Task" loadingLabel="Deleting..." fallbackError="Unable to delete task."
