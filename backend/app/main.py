@@ -9,7 +9,9 @@ from app.auth import create_access_token, get_current_user, hash_password, verif
 from app.database import Base, engine, get_db
 from app.models import User
 from app.routes.comments import router as comments_router
+from app.routes.documents import router as documents_router
 from app.routes.projects import router as projects_router
+from app.routes.rag import router as rag_router
 from app.routes.tasks import router as tasks_router
 from app.schemas import TokenResponse, UserLogin, UserRegister, UserResponse
 
@@ -32,6 +34,8 @@ app.add_middleware(
 app.include_router(projects_router)
 app.include_router(tasks_router)
 app.include_router(comments_router)
+app.include_router(documents_router)
+app.include_router(rag_router)
 
 
 @app.post(

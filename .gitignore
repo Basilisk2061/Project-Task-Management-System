@@ -19,6 +19,12 @@ frontend/dist/
 *.db
 *.db-journal
 
+# Locally uploaded project documents
+backend/uploads/
+
+# Generated project-specific FAISS indexes and chunk metadata
+backend/rag_indexes/
+
 # IDE and operating system files
 .vscode/
 .idea/

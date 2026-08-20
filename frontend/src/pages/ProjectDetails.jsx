@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useOutletContext, useParams } from 'react-router-dom'
-import { EditIcon, PlusIcon, TrashIcon } from '../components/AppIcons.jsx'
+import { EditIcon, FileIcon, PlusIcon, TrashIcon } from '../components/AppIcons.jsx'
 import AddMemberModal from '../components/AddMemberModal.jsx'
 import ConfirmModal from '../components/ConfirmModal.jsx'
+import DocumentUploadModal from '../components/DocumentUploadModal.jsx'
 import ProjectFormModal from '../components/ProjectFormModal.jsx'
 import TaskBoard from '../components/TaskBoard.jsx'
 import TaskDetailsModal from '../components/TaskDetailsModal.jsx'
@@ -16,6 +17,7 @@ import {
   updateProject,
 } from '../services/projects.js'
 import { formatCreatedDate, formatDate } from '../utils/date.js'
+import { deleteDocument, getDocumentBlob, getDocumentError, getProjectDocuments } from '../services/documents.js'
 import { createTask, deleteTask, getProjectTasks, getTaskError, updateTask, updateTaskStatus } from '../services/tasks.js'
 
 function ProjectDetails() {
@@ -25,6 +27,7 @@ function ProjectDetails() {
   const [project, setProject] = useState(null)
   const [members, setMembers] = useState([])
   const [tasks, setTasks] = useState([])
+  const [documents, setDocuments] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [editOpen, setEditOpen] = useState(false)
@@ -39,7 +42,14 @@ function ProjectDetails() {
   const [savingStatusId, setSavingStatusId] = useState(null)
   const [taskError, setTaskError] = useState('')
   const [displayProgress, setDisplayProgress] = useState(0)
+  const [documentsLoading, setDocumentsLoading] = useState(true)
+  const [documentError, setDocumentError] = useState('')
+  const [documentUploadOpen, setDocumentUploadOpen] = useState(false)
+  const [documentToDelete, setDocumentToDelete] = useState(null)
+  const [removingDocumentId, setRemovingDocumentId] = useState(null)
+  const [documentAction, setDocumentAction] = useState('')
   const removeTimer = useRef(null)
+  const documentTimer = useRef(null)
   const completedTaskCount = tasks.filter((task) => task.status === 'completed').length
   const taskCount = tasks.length
   const progressPercent = taskCount === 0 ? 0 : Math.round((completedTaskCount / taskCount) * 100)
@@ -59,7 +69,24 @@ function ProjectDetails() {
     return () => { active = false }
   }, [projectId])
 
-  useEffect(() => () => window.clearTimeout(removeTimer.current), [])
+  useEffect(() => {
+    let active = true
+    setDocumentsLoading(true)
+    setDocumentError('')
+    getProjectDocuments(projectId)
+      .then((data) => { if (active) setDocuments(data) })
+      .catch(async (requestError) => {
+        const message = await getDocumentError(requestError, 'Unable to load documents.')
+        if (active) setDocumentError(message)
+      })
+      .finally(() => { if (active) setDocumentsLoading(false) })
+    return () => { active = false }
+  }, [projectId])
+
+  useEffect(() => () => {
+    window.clearTimeout(removeTimer.current)
+    window.clearTimeout(documentTimer.current)
+  }, [])
 
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => setDisplayProgress(progressPercent))
@@ -95,6 +122,57 @@ function ProjectDetails() {
     } finally {
       setSavingStatusId(null)
     }
+  }
+
+  const openDocument = async (document) => {
+    const previewWindow = window.open('', '_blank')
+    if (!previewWindow) {
+      setDocumentError('Unable to open PDF. Allow pop-ups for TaskFlow and try again.')
+      return
+    }
+    previewWindow.opener = null
+    setDocumentAction(`open-${document.id}`)
+    setDocumentError('')
+    try {
+      const blob = await getDocumentBlob(document.id)
+      const objectUrl = URL.createObjectURL(blob)
+      previewWindow.location.href = objectUrl
+      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 60000)
+    } catch (requestError) {
+      previewWindow.close()
+      setDocumentError(await getDocumentError(requestError, 'Unable to open PDF.'))
+    } finally {
+      setDocumentAction('')
+    }
+  }
+
+  const downloadDocumentFile = async (document) => {
+    setDocumentAction(`download-${document.id}`)
+    setDocumentError('')
+    try {
+      const blob = await getDocumentBlob(document.id)
+      const objectUrl = URL.createObjectURL(blob)
+      const link = window.document.createElement('a')
+      link.href = objectUrl
+      link.download = document.file_name
+      window.document.body.appendChild(link)
+      link.click()
+      link.remove()
+      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 0)
+    } catch (requestError) {
+      setDocumentError(await getDocumentError(requestError, 'Unable to download PDF.'))
+    } finally {
+      setDocumentAction('')
+    }
+  }
+
+  const finishDocumentRemoval = (document) => {
+    setRemovingDocumentId(document.id)
+    documentTimer.current = window.setTimeout(() => {
+      setDocuments((current) => current.filter((item) => item.id !== document.id))
+      setRemovingDocumentId(null)
+      setDocumentToDelete(null)
+    }, 200)
   }
 
   return (
@@ -160,6 +238,37 @@ function ProjectDetails() {
           onDelete={setTaskToDelete} />
       </section>
 
+      <section className="documents-card">
+        <header className="documents-header">
+          <div><h2>Documents</h2><p>Project PDFs shared with the team.</p></div>
+          <button className="btn taskflow-button primary" type="button" onClick={() => setDocumentUploadOpen(true)}><PlusIcon /><span>Upload PDF</span></button>
+        </header>
+        {documentError && <div className="alert alert-danger mx-3 mt-3" role="alert">{documentError}</div>}
+        {documentsLoading ? (
+          <div className="documents-loading"><span className="loading-spinner" aria-hidden="true" /><span>Loading documents...</span></div>
+        ) : documents.length === 0 ? (
+          <div className="documents-empty"><strong>No documents uploaded yet.</strong><span>Upload project PDFs to keep important information in one place.</span></div>
+        ) : (
+          <div className="documents-list">
+            {documents.map((document, index) => {
+              const canDeleteDocument = isOwner || document.uploaded_by === user.id
+              const opening = documentAction === `open-${document.id}`
+              const downloading = documentAction === `download-${document.id}`
+              return (
+                <article className={`document-row${removingDocumentId === document.id ? ' removing' : ''}`} key={document.id} style={{ '--document-delay': `${Math.min(index, 6) * 35}ms` }}>
+                  <div className="document-identity"><span className="document-icon"><FileIcon /></span><div><strong>{document.file_name}</strong><span>Uploaded by {document.uploader.name} · {formatCreatedDate(document.created_at)}</span></div></div>
+                  <div className="document-actions">
+                    <button type="button" onClick={() => openDocument(document)} disabled={Boolean(documentAction)}>{opening ? 'Opening...' : 'Open'}</button>
+                    <button type="button" onClick={() => downloadDocumentFile(document)} disabled={Boolean(documentAction)}>{downloading ? 'Downloading...' : 'Download'}</button>
+                    {canDeleteDocument && <button className="danger" type="button" onClick={() => setDocumentToDelete(document)} disabled={Boolean(documentAction)}>Delete</button>}
+                  </div>
+                </article>
+              )
+            })}
+          </div>
+        )}
+      </section>
+
       <ProjectFormModal isOpen={editOpen} mode="edit" project={project}
         onClose={() => setEditOpen(false)} onSubmit={(data) => updateProject(project.id, data)} onSaved={setProject} />
       <ConfirmModal isOpen={deleteOpen} projectName={project.name}
@@ -184,6 +293,14 @@ function ProjectDetails() {
       <TaskDetailsModal isOpen={Boolean(detailsTask)} task={detailsTask} user={user}
         onClose={() => setDetailsTask(null)}
         onEdit={(task) => { setSelectedTask(task); setTaskModalOpen(true) }} />
+      <DocumentUploadModal isOpen={documentUploadOpen} projectId={project.id}
+        onClose={() => setDocumentUploadOpen(false)}
+        onSaved={(savedDocument) => setDocuments((current) => [savedDocument, ...current])} />
+      <ConfirmModal isOpen={Boolean(documentToDelete)} title="Delete document?"
+        message={documentToDelete ? `This will permanently delete “${documentToDelete.file_name}”.` : ''}
+        confirmLabel="Delete Document" loadingLabel="Deleting..." fallbackError="Unable to delete document."
+        onClose={() => setDocumentToDelete(null)} onConfirm={() => deleteDocument(documentToDelete.id)}
+        onConfirmed={() => finishDocumentRemoval(documentToDelete)} />
       <ConfirmModal isOpen={Boolean(taskToDelete)} title="Delete task?"
         message={taskToDelete ? `This will permanently delete “${taskToDelete.title}”.` : ''}
         confirmLabel="Delete Task" loadingLabel="Deleting..." fallbackError="Unable to delete task."

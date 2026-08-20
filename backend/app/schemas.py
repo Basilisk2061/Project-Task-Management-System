@@ -205,3 +205,94 @@ class CommentResponse(BaseModel):
     content: str
     created_at: datetime
     author: TaskUserResponse = Field(validation_alias="user")
+
+
+class DocumentResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    project_id: int
+    file_name: str
+    uploaded_by: int
+    created_at: datetime
+    uploader: TaskUserResponse
+
+
+class RagChunkPreview(BaseModel):
+    chunk_index: int
+    preview: str
+
+
+class RagDocumentInspection(BaseModel):
+    document_id: int
+    file_name: str
+    status: Literal["processed", "no_extractable_text", "unreadable_pdf", "file_missing"]
+    character_count: int
+    chunk_count: int
+    message: str | None = None
+    chunks: list[RagChunkPreview]
+
+
+class RagProjectInspectionResponse(BaseModel):
+    project_id: int
+    document_count: int
+    total_chunks: int
+    documents: list[RagDocumentInspection]
+
+
+class RagIndexBuildResponse(BaseModel):
+    project_id: int
+    documents_processed: int
+    chunks_indexed: int
+    embedding_model: str
+    vector_dimension: int
+    status: Literal["ready"]
+
+
+class RagSearchRequest(BaseModel):
+    question: str = Field(min_length=1, max_length=1000)
+
+    @field_validator("question", mode="before")
+    @classmethod
+    def clean_question(cls, value: str) -> str:
+        if not isinstance(value, str):
+            return value
+        cleaned_question = value.strip()
+        if not cleaned_question:
+            raise ValueError("Question cannot be empty")
+        return cleaned_question
+
+
+class RagSearchResult(BaseModel):
+    rank: int
+    document_id: int
+    file_name: str
+    chunk_index: int
+    score: float
+    text: str
+
+
+class RagSearchResponse(BaseModel):
+    project_id: int
+    question: str
+    top_k: int
+    results: list[RagSearchResult]
+
+
+class RagAskRequest(RagSearchRequest):
+    pass
+
+
+class RagAskSource(BaseModel):
+    source_number: int
+    document_id: int
+    file_name: str
+    chunk_index: int
+
+
+class RagAskResponse(BaseModel):
+    project_id: int
+    question: str
+    answer: str
+    grounded: bool
+    sources: list[RagAskSource]

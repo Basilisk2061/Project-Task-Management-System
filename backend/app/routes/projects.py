@@ -5,7 +5,9 @@ from sqlalchemy.orm import Session
 
 from app.auth import get_current_user
 from app.database import get_db
-from app.models import Comment, Project, ProjectMember, Task, User
+from app.document_storage import delete_project_storage
+from app.models import Comment, Document, Project, ProjectMember, Task, User
+from app.rag.vector_store import delete_project_index
 from app.schemas import (
     ProjectCreate,
     ProjectMemberCreate,
@@ -134,6 +136,17 @@ def delete_project(
     db: Session = Depends(get_db),
 ) -> Response:
     project = get_owned_project(project_id, current_user.id, db)
+    try:
+        delete_project_storage(project.id)
+        delete_project_index(project.id)
+    except OSError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Unable to delete project files",
+        ) from exc
+    db.query(Document).filter(Document.project_id == project.id).delete(
+        synchronize_session=False
+    )
     task_ids = select(Task.id).where(Task.project_id == project.id)
     db.query(Comment).filter(Comment.task_id.in_(task_ids)).delete(
         synchronize_session=False
